@@ -1,0 +1,18 @@
+# Secrets
+.env
+
+# Gemini CLI runtime files (credentials, telemetry)
+.gemini/telemetry.log
+gha-creds-*.json
+
+# Playwright output
+generated_test/node_modules/
+generated_test/playwright-report/
+generated_test/test-results/
+
+# Generated test files (produced by CI, not committed)
+generated_test/tests/api/payment-api.spec.ts
+generated_test/tests/web/checkout-e2e.spec.ts
+
+node_modules/
+.DS_Store

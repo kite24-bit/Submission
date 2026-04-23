@@ -1,0 +1,59 @@
+description = "Generates Playwright E2E tests for the checkout frontend"
+
+prompt = """
+<CONTEXT>
+  Read the React checkout component by running:
+    cat application_code/app/page.tsx
+
+  Also read GEMINI.md for project context, selector rules, and file paths.
+
+  Key behaviors to understand from the source:
+    - Email field: async validation on blur → POST /api/validate-email
+      If 500 → soft fail, shows warning but emailValid is set to true, form NOT blocked
+    - Card field: async validation on blur → POST /api/validate-card (Luhn check)
+      If cardValid === false → submit is blocked with early return
+    - Submit button: disabled when loading=true
+    - Success message: starts with "✅" and contains "Payment processed successfully"
+    - Card error message: "❌ Invalid card number (Luhn check failed)"
+    - Email warning (soft fail): contains "temporarily unavailable" or "can still proceed"
+</CONTEXT>
+
+<TASK>
+  Generate a complete Playwright E2E test file covering these 3 scenarios:
+
+  SCENARIO 1 — Happy path checkout:
+    - page.goto('/')
+    - Fill [name="email"] with "test@example.com"
+    - Click elsewhere to blur, wait for POST /api/validate-email response
+    - Fill [name="cardNumber"] with "4242 4242 4242 4242"
+    - Click elsewhere to blur, wait for POST /api/validate-card response
+    - Fill [name="expiry"] with "12/26"
+    - Fill [name="cvv"] with "123"
+    - Fill [name="amount"] with "50"
+    - Click [type="submit"]
+    - Wait for POST /api/checkout response
+    - Assert: page contains text "Payment processed successfully"
+
+  SCENARIO 2 — Invalid card number (Luhn check fails):
+    - page.goto('/')
+    - Fill [name="cardNumber"] with "1234 5678 9012 3456"
+    - Click elsewhere to blur, wait for POST /api/validate-card response
+    - Assert: page contains text "Invalid card number" or "Luhn check failed"
+
+  SCENARIO 3 — Email soft-fail (API returns 500):
+    - page.goto('/')
+    - Fill [name="email"] with "test@example.com"
+    - Click elsewhere to blur, wait for POST /api/validate-email response (status 500)
+    - Assert: warning text is visible (contains "unavailable" or "can still proceed")
+    - Assert: submit button ([type="submit"]) is still enabled (not disabled)
+</TASK>
+
+<OUTPUT_RULES>
+  - Use page.waitForResponse() for ALL async blur validations — no fixed timeouts
+  - Selector priority: [name="x"] first, [type="submit"] for button, never CSS classes
+  - No test.skip(). All 3 scenarios fully implemented.
+  - Output ONLY valid TypeScript. Zero markdown fences.
+  - Write the file to: generated_test/tests/web/checkout-e2e.spec.ts
+  - Create the directory if needed with: mkdir -p generated_test/tests/web
+</OUTPUT_RULES>
+"""
