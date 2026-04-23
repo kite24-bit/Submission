@@ -109,13 +109,6 @@ jobs:
       - name: Checkout test repo
         uses: actions/checkout@v4
 
-      - name: Checkout application repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ vars.APP_REPO }}
-          token: ${{ secrets.APP_REPO_TOKEN }}
-          path: application_code
-
       # ── Download generated tests dari Job 1 ──────────────────────────────
       - name: Download generated tests
         uses: actions/download-artifact@v4
