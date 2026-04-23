@@ -32,13 +32,22 @@ jobs:
     steps:
       - name: Checkout test repo (this repo)
         uses: actions/checkout@v4
-
+        with:
+          path: ci-repo
+          
       - name: Checkout application repo
         uses: actions/checkout@v4
         with:
           repository: ${{ vars.APP_REPO }}         # Set di repo Variables: owner/app-repo
-          token: ${{ secrets.APP_REPO_TOKEN }}      # PAT jika app repo private
+          token: ${{ secrets.CHECKOUT_TOKEN }}      # PAT jika app repo private
           path: application_code
+          
+      - name: Checkout application repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.TEMPLATE_REPO }}         # Set di repo Variables: owner/app-repo
+          token: ${{ secrets.CHECKOUT_TOKEN }}      # PAT jika app repo private
+          path: playwright_template
 
       # ── Generate API Tests ──────────────────────────────────────────────
       # Gemini CLI membaca .gemini/commands/generate-api-tests.toml
