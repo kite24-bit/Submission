@@ -42,7 +42,7 @@ jobs:
           token: ${{ secrets.CHECKOUT_TOKEN }}      # PAT jika app repo private
           path: application_code
           
-      - name: Checkout application repo
+      - name: Checkout playwright template repo
         uses: actions/checkout@v4
         with:
           repository: ${{ vars.TEMPLATE_REPO }}         # Set di repo Variables: owner/app-repo
