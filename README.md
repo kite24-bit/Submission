@@ -1,187 +1,230 @@
-# AI Quality Gate — Gemini CLI + Playwright
+# Playwright Automation Template
 
-Pipeline CI/CD yang menggunakan **`google-github-actions/run-gemini-cli`** dengan
-pattern **`.gemini/commands/*.toml`** untuk generate Playwright tests secara otomatis,
-kemudian menjalankannya sebagai quality gate di setiap PR.
+Production-ready Playwright automation template for comprehensive Web and API testing with TypeScript
 
----
+## 🚀 Features
 
-## Cara Kerja
+- **Web UI Testing** - Cross-browser testing (Chrome, Firefox, Safari)
+- **API Testing** - REST API validation and integration testing
+- **Page Object Model** - Organized and maintainable test structure
+- **TypeScript Support** - Full type safety and IntelliSense
+- **Multiple Environments** - Staging, UAT, Production configurations
+- **Built-in Utilities** - API helpers, test utilities, and common functions
 
-```
-PR dibuka
-    │
-    ▼
-Job 1: generate (ubuntu-latest)
-    ├─ checkout test-repo  +  checkout application_code/
-    │
-    ├─ google-github-actions/run-gemini-cli
-    │   prompt: '/generate-api-tests'
-    │   └─ Gemini baca: GEMINI.md (auto)
-    │                   .gemini/commands/generate-api-tests.toml
-    │                   application_code/docs/swagger.yaml (via shell tool)
-    │      → tulis: generated_test/tests/api/payment-api.spec.ts
-    │
-    ├─ google-github-actions/run-gemini-cli
-    │   prompt: '/generate-e2e-tests'
-    │   └─ Gemini baca: GEMINI.md (auto)
-    │                   .gemini/commands/generate-e2e-tests.toml
-    │                   application_code/app/page.tsx (via shell tool)
-    │      → tulis: generated_test/tests/web/checkout-e2e.spec.ts
-    │
-    ├─ Validation guard (bash): cek file exist + valid TypeScript + min 20 lines
-    └─ Upload artifact: generated_test/tests/
-         │
-         ▼
-Job 2: run-tests (ubuntu-latest)
-    ├─ Download artifact
-    ├─ go build → ./api-server & (port 8080) + health check polling
-    ├─ npm run build → npm run start & (port 3000) + health check polling
-    ├─ npx playwright test --project=api-tests
-    ├─ npx playwright test --project=chromium
-    ├─ Upload HTML report + JUnit XML + screenshots (on failure)
-    └─ Post PR comment
-         │
-         ▼
-    PR ✅ pass atau ❌ blocked
-```
+## Prerequisites
 
----
+- Node.js (version 16 or higher)
+- npm or yarn
 
-## Struktur File
+## 🛠️ Installation
 
-```
-.
-├── GEMINI.md                               ← Context project (dibaca otomatis Gemini CLI)
-├── README.md
-├── .env.example
-├── .gitignore
-│
-├── .gemini/
-│   └── commands/
-│       ├── generate-api-tests.toml         ← Command: /generate-api-tests
-│       └── generate-e2e-tests.toml         ← Command: /generate-e2e-tests
-│
-├── .github/
-│   └── workflows/
-│       └── quality-gate.yaml               ← CI pipeline
-│
-└── generated_test/                         ← Playwright project (template, UNMODIFIED)
-    ├── playwright.config.ts
-    ├── package.json
-    ├── config/environment.ts
-    ├── utils/api-helper.ts
-    ├── page-objects/base-page.ts
-    └── tests/
-        ├── api/
-        │   └── payment-api.spec.ts         ← Digenerate oleh /generate-api-tests
-        └── web/
-            └── checkout-e2e.spec.ts        ← Digenerate oleh /generate-e2e-tests
-```
-
----
-
-## Setup
-
-### 1. GitHub Secrets
-```
-Repo → Settings → Secrets and variables → Actions → New repository secret
-
-GEMINI_API_KEY   = <API key dari https://aistudio.google.com/apikey>
-APP_REPO_TOKEN   = <GitHub PAT dengan repo:read scope, jika app repo private>
-```
-
-### 2. GitHub Variables
-```
-Repo → Settings → Secrets and variables → Actions → Variables tab
-
-APP_REPO = owner/nama-repo-aplikasi
-```
-
-### 3. Buat PR → CI otomatis jalan
-
----
-
-## Jalankan Lokal
+### Quick Start
 
 ```bash
-# 1. Install Gemini CLI
-npm install -g @google/gemini-cli
+# Clone the repository
+git clone <repository-url>
+cd base-playwright-automation
 
-# 2. Set API key
-export GEMINI_API_KEY=your-key-here
-
-# 3. Start aplikasi (di terminal lain)
-cd ../application_code
-go run main.go &       # port 8080
-npm run dev &          # port 3000
-
-# 4. Generate tests via Gemini CLI commands
-gemini '/generate-api-tests'
-gemini '/generate-e2e-tests'
-
-# 5. Run tests
-cd generated_test
+# Install dependencies
 npm install
-npx playwright install chromium --with-deps
-npm test
+
+# Install browsers
+npx playwright install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
 ```
 
----
+### For Web Automation
 
-## Kenapa Pakai .toml Commands?
+```bash
+# Initialize new Playwright project with web testing setup
+npm init playwright@latest
 
-Pattern `.gemini/commands/*.toml` adalah cara resmi Gemini CLI untuk mendefinisikan
-custom commands yang bisa dipanggil dengan `/nama-command`.
+# Or install in existing project
+npm install -D @playwright/test
 
-Keuntungannya dibanding prompt inline di YAML:
-- **Maintainable** — prompt ada di file tersendiri, YAML tetap bersih
-- **Versioned** — perubahan prompt ter-track di git history
-- **Reusable** — command yang sama bisa dipanggil lokal maupun di CI
-- **Readable** — format TOML lebih mudah dibaca dan diedit
+# Install browsers (Chromium, Firefox, WebKit)
+npx playwright install
+```
 
----
+### For API Testing
 
-## Secret Handling
+```bash
+# Install Playwright Test (same as web automation)
+npm install -D @playwright/test
 
-| Variable | Tipe | Cara inject |
-|---|---|---|
-| `GEMINI_API_KEY` | Secret | `gemini_api_key: ${{ secrets.GEMINI_API_KEY }}` di action |
-| `APP_REPO_TOKEN` | Secret | `token:` di `actions/checkout` |
-| `APP_REPO` | Variable (non-secret) | `${{ vars.APP_REPO }}` |
+# For API testing, you don't need browsers, but if you want them:
+npx playwright install
 
-- `.env` ada di `.gitignore` — tidak pernah dicommit
-- Tidak ada secret yang hardcode di source code maupun YAML
-- `.gemini/` ada di `.gitignore` — credential file tidak dicommit
+# Or install only Playwright core for API-only testing
+npm install -D playwright-core
+```
 
----
+### Additional Setup
 
-## LLM Prompt Design
+```bash
+# Install TypeScript (recommended)
+npm install -D typescript
 
-### GEMINI.md — Project Context
-Dibaca otomatis Gemini CLI di setiap run. Berisi:
-- Tabel endpoint API dengan request/response schema
-- Tabel form fields dengan selector yang benar
-- Rules yang non-negotiable (no test.skip, no CSS selector, dll)
+# Install additional types if needed
+npm install -D @types/node
+```
 
-Dengan GEMINI.md, setiap `.toml` command tidak perlu mengulang konteks dasar —
-cukup fokus ke instruksi spesifik untuk command tersebut.
+## 🏃‍♂️ Running Tests
 
-### generate-api-tests.toml
-- Instruksikan Gemini untuk `cat application_code/docs/swagger.yaml` sendiri
-- Minta coverage semua 4 endpoint: happy path + negative case
-- Schema-aware assertions dari swagger definitions
+```bash
+# Run all tests
+npm test
 
-### generate-e2e-tests.toml
-- Instruksikan Gemini untuk `cat application_code/app/page.tsx` sendiri
-- 3 skenario spesifik: happy path, invalid card, email soft-fail
-- Explicit behavior notes (soft-fail logic, disabled button condition)
+# Run web tests only
+npm run test:web
 
----
+# Run API tests only
+npm run test:api
 
-## Mencegah Hallucination
+# Run with UI mode
+npm run test:ui
 
-1. **Validation guard** di CI: cek file exist, ada Playwright import, ada `test()`, min 20 lines
-2. **GEMINI.md rules** yang eksplisit: no markdown fences, no test.skip, output path yang spesifik
-3. **`.toml` context** minta Gemini `cat` file langsung — baca source of truth, bukan asumsi
-4. **Generated files di-print** ke CI log — reviewer bisa inspect output Gemini
+# Run in debug mode
+npm run test:debug
+
+# Run on specific environment
+npm run test:staging
+npm run test:uat
+```
+
+## 📁 Project Structure
+
+```
+├── config/
+│   └── environment.ts      # Environment configurations
+├── page-objects/
+│   ├── base-page.ts       # Base page object class
+│   └── home-page.ts       # Example page object
+├── tests/
+│   ├── api/
+│   │   └── example-api.spec.ts    # API test examples
+│   └── web/
+│       └── example-web.spec.ts    # Web test examples
+├── utils/
+│   ├── api-helper.ts      # API testing utilities
+│   └── test-utils.ts      # Common test utilities
+├── docs/
+│   └── getting-started.md # Detailed documentation
+├── playwright.config.ts   # Playwright configuration
+├── package.json
+├── tsconfig.json
+└── .env.example           # Environment variables template
+```
+
+## 📖 Usage Examples
+
+### Web Testing
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { HomePage } from '../page-objects/home-page';
+
+test('homepage loads correctly', async ({ page }) => {
+    const homePage = new HomePage(page);
+    await homePage.goto();
+    await expect(await homePage.isLoaded()).toBe(true);
+});
+```
+
+### API Testing
+
+```typescript
+import { test, expect } from '@playwright/test';
+import { ApiHelper } from '../utils/api-helper';
+
+test('API health check', async ({ request }) => {
+    const apiHelper = new ApiHelper(request, 'your-api-key');
+    const response = await apiHelper.get('/health');
+    expect(response.status()).toBe(200);
+});
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+TEST_ENV=staging
+API_SECRET_KEY=your-secret-api-key
+```
+
+### Browser Configuration
+
+Tests run on multiple browsers by default:
+
+- Chromium (Chrome/Edge)
+- Firefox
+- WebKit (Safari)
+
+## 📊 Reporting
+
+View test reports after execution:
+
+```bash
+npm run report
+```
+
+Reports include:
+
+- HTML report with test results
+- Screenshots on failures
+- Video recordings (if enabled)
+- Trace files for debugging
+
+## 🔍 Debugging
+
+```bash
+# Visual debugging with browser
+npm run test:headed
+
+# Step-through debugging
+npm run test:debug
+
+# Generate test code
+npm run codegen
+```
+
+## 🤝 Contributing
+
+1. Follow the existing code structure
+2. Add tests for new features
+3. Update documentation as needed
+4. Run linting before committing:
+    ```bash
+    npm run lint
+    npm run format:check
+    ```
+
+## 📋 Available Scripts
+
+### Verify Installation
+
+```bash
+# Run sample tests
+npx playwright test
+
+# Generate code for web automation
+npx playwright codegen
+
+# Show installed browsers
+npx playwright --version
+```
+
+## 🆘 Support
+
+- Check the [Getting Started Guide](./docs/getting-started.md)
+- Review example test files
+
+## 📄 License
+
+MIT License - see LICENSE file for details
