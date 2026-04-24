@@ -324,4 +324,4 @@ jobs:
             --request-changes \
             --body "❌ Tests failed"
         env:
-          github-token: ${{ secrets.CHECKOUT_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
