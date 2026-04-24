@@ -224,11 +224,6 @@ jobs:
       # ── Run E2E Tests ────────────────────────────────────────────────────
       - name: 🧪 Run E2E Tests
         working-directory: generated_test
-        env:
-          TEST_ENV: staging
-          STAGING_API_URL: http://localhost:8080
-          STAGING_BASE_URL: http://localhost:3000
-          CI: true
         run: |
           npx playwright test --project=chromium \
             --reporter=list,junit \
