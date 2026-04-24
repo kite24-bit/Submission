@@ -203,20 +203,15 @@ jobs:
             || { echo "❌ Frontend gagal start"; exit 1; }
 
       # ── Install Playwright ───────────────────────────────────────────────
-      - name: Install Playwright + Chromium
-        working-directory: generated_test
+      - name: Install Playwright
+        working-directory: playwright_template
         run: |
-          npm ci
-          npx playwright install chromium --with-deps
+          npm install
+          npx playwright install
 
       # ── Run API Tests ────────────────────────────────────────────────────
       - name: 🧪 Run API Tests
-        working-directory: generated_test
-        env:
-          TEST_ENV: staging
-          STAGING_API_URL: http://localhost:8080
-          STAGING_BASE_URL: http://localhost:3000
-          CI: true
+        working-directory: playwright_template
         run: |
           npx playwright test --project=api-tests \
             --reporter=list,junit \
