@@ -324,3 +324,5 @@ jobs:
           gh pr review ${{ github.event.pull_request.number }} \
             --request-changes \
             --body "❌ Tests failed"
+        env:
+          GH_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
