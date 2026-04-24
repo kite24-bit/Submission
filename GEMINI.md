@@ -44,8 +44,8 @@ Gunakan `[name="fieldName"]` — JANGAN CSS class selector.
 
 ## Output Path untuk Generated Tests
 
-- API tests → `generated_test/tests/api/payment-api.spec.ts`
-- E2E tests → `generated_test/tests/web/checkout-e2e.spec.ts`
+- API tests → `generated_test/api/payment-api.spec.ts`
+- E2E tests → `generated_test/web/checkout-e2e.spec.ts`
 
 ## Rules (wajib diikuti semua generated tests)
 
