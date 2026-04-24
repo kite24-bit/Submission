@@ -145,12 +145,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Download generated tests dari job 1
-      - name: Download generated tests
-        uses: actions/download-artifact@v4
-        with:
-          name: generated-tests
-          path: generated_test/tests/
 
       # ── Setup Go ────────────────────────────────────────────────────────
       - name: Setup Go
