@@ -205,7 +205,7 @@ jobs:
       - name: Move generated tests
         run: |
           rm -rf playwright_template/tests/*
-          cp -r generated_test/* playwright_template/tests/
+          cp -r generated_tests/* playwright_template/tests/
       # ── Install Playwright ───────────────────────────────────────────────
       - name: Install Playwright
         working-directory: playwright_template
