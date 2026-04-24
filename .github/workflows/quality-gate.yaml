@@ -39,6 +39,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
+          GEMINI_CLI_TRUST_WORKSPACE: true
           prompt: '/generate-api-tests'
 
       # Generate E2E tests
@@ -48,6 +49,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
+          GEMINI_CLI_TRUST_WORKSPACE: true
           prompt: '/generate-e2e-tests'
 
       # Guard: pastikan output Gemini valid sebelum lanjut ke run
