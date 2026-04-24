@@ -221,7 +221,7 @@ jobs:
 
       # ── Run E2E Tests ────────────────────────────────────────────────────
       - name: 🧪 Run E2E Tests
-        working-directory: generated_test
+        working-directory: playwright_template
         run: |
           npm run test:web
 
