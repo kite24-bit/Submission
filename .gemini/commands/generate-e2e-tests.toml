@@ -4,7 +4,9 @@ prompt = """
 <CONTEXT>
   Read the React checkout component by running:
     cat application_code/app/page.tsx
-
+  Read the Playwright config file within this shell command:
+    cat playwright_template/playwright.config.ts
+  And make sure the script is able to run successfully.
   Also read GEMINI.md for project context, selector rules, and file paths.
 
   Key behaviors to understand from the source:
