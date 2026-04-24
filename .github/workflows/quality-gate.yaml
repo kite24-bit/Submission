@@ -2,12 +2,10 @@ name: 🤖 AI Quality Gate — Gemini CLI + Playwright
 
 on:
   pull_request:
-    branches: [main, master, develop]
-  push:
     branches: [main, master]
 
 concurrency:
-  group: '${{ github.workflow }}-${{ github.ref }}'
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 defaults:
@@ -15,61 +13,46 @@ defaults:
     shell: bash
 
 # ─────────────────────────────────────────────────────────────────────────────
-# JOB 1: generate
+# JOB 1 — generate
 #
-# Gemini CLI membaca .gemini/commands/*.toml, lalu menjalankan setiap command
-# untuk generate API tests dan E2E tests ke generated_test/tests/
+# Gemini CLI baca .gemini/commands/*.toml + GEMINI.md
+# lalu tulis test files ke generated_test/tests/
 # ─────────────────────────────────────────────────────────────────────────────
 jobs:
   generate:
-    name: 🤖 Gemini — Generate Tests
+    name: 🤖 Generate Tests (Gemini CLI)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     permissions:
       contents: read
 
     steps:
-      - name: Checkout test repo (this repo)
+      # Satu repo = satu checkout, semua sudah ada di dalam
+      - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          path: ci-repo
-          
-      - name: Checkout application repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ vars.APP_REPO }}         # Set di repo Variables: owner/app-repo
-          token: ${{ secrets.CHECKOUT_TOKEN }}      # PAT jika app repo private
-          path: application_code
-          
-      - name: Checkout playwright template repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ vars.TEMPLATE_REPO }}         # Set di repo Variables: owner/app-repo
-          token: ${{ secrets.CHECKOUT_TOKEN }}      # PAT jika app repo private
-          path: playwright_template
 
-      # ── Generate API Tests ──────────────────────────────────────────────
-      # Gemini CLI membaca .gemini/commands/generate-api-tests.toml
-      # + GEMINI.md (project context) → menulis payment-api.spec.ts
+      # Generate API tests
+      # Gemini baca: GEMINI.md + .toml + cat application_code/docs/swagger.yaml
+      # Output: generated_test/tests/api/payment-api.spec.ts
       - name: 🤖 Generate API Tests
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: '/generate-api-tests'
 
-      # ── Generate E2E Tests ──────────────────────────────────────────────
-      # Gemini CLI membaca .gemini/commands/generate-e2e-tests.toml
-      # + GEMINI.md → menulis checkout-e2e.spec.ts
+      # Generate E2E tests
+      # Gemini baca: GEMINI.md + .toml + cat application_code/app/page.tsx
+      # Output: generated_test/tests/web/checkout-e2e.spec.ts
       - name: 🤖 Generate E2E Tests
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: '/generate-e2e-tests'
 
-      # ── Validate generated files ────────────────────────────────────────
-      # Guard terhadap hallucination: pastikan output valid sebelum lanjut
-      - name: ✅ Validate generated test files
+      # Guard: pastikan output Gemini valid sebelum lanjut ke run
+      # Cegah hallucination masuk ke test execution
+      - name: ✅ Validate generated files
         run: |
           API_FILE="generated_test/tests/api/payment-api.spec.ts"
           E2E_FILE="generated_test/tests/web/checkout-e2e.spec.ts"
@@ -77,29 +60,33 @@ jobs:
           for FILE in "$API_FILE" "$E2E_FILE"; do
             echo "--- Checking: $FILE ---"
 
-            [ -f "$FILE" ] || { echo "❌ Missing: $FILE"; exit 1; }
+            [ -f "$FILE" ] \
+              || { echo "❌ File tidak ditemukan: $FILE"; exit 1; }
 
             grep -q "@playwright/test" "$FILE" \
-              || { echo "❌ Missing Playwright import in $FILE"; exit 1; }
+              || { echo "❌ Missing Playwright import di $FILE"; exit 1; }
 
             grep -qE "test\(|test\.describe\(" "$FILE" \
-              || { echo "❌ No test() calls found in $FILE"; exit 1; }
+              || { echo "❌ Tidak ada test() di $FILE"; exit 1; }
 
             LINES=$(wc -l < "$FILE")
             [ "$LINES" -ge 20 ] \
-              || { echo "❌ $FILE too short ($LINES lines) — possible hallucination"; exit 1; }
+              || { echo "❌ $FILE terlalu pendek ($LINES baris)"; exit 1; }
 
-            echo "✅ $FILE OK ($LINES lines)"
+            echo "✅ $FILE valid ($LINES baris)"
           done
 
-      - name: 📄 Print generated files
+      # Print ke log CI supaya reviewer bisa inspect output Gemini
+      - name: 📄 Print generated tests
+        if: always()
         run: |
           echo "========== payment-api.spec.ts =========="
-          cat generated_test/tests/api/payment-api.spec.ts
+          cat generated_test/tests/api/payment-api.spec.ts || echo "(not found)"
           echo ""
           echo "========== checkout-e2e.spec.ts =========="
-          cat generated_test/tests/web/checkout-e2e.spec.ts
+          cat generated_test/tests/web/checkout-e2e.spec.ts || echo "(not found)"
 
+      # Upload sebagai artifact untuk dipakai job run-tests
       - name: Upload generated tests
         uses: actions/upload-artifact@v4
         with:
@@ -109,10 +96,12 @@ jobs:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# JOB 2: run-tests
+# JOB 2 — run-tests
 #
-# Start Go API + Next.js → download generated tests → run Playwright
-# PR di-block otomatis jika ada test yang gagal
+# Start Go API + Next.js dari application_code/
+# Download generated tests dari job 1
+# Run Playwright dari generated_test/
+# PR di-block otomatis kalau ada test gagal
 # ─────────────────────────────────────────────────────────────────────────────
   run-tests:
     name: 🧪 Run Playwright Tests
@@ -121,32 +110,24 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      # ── Checkout ──────────────────────────────────────────────────────────
-      - name: Checkout test repo
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Checkout application repo
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ vars.APP_REPO }}
-          token: ${{ secrets.APP_REPO_TOKEN }}
-          path: application_code
-
-      # ── Download generated tests dari Job 1 ──────────────────────────────
+      # Download generated tests dari job 1
       - name: Download generated tests
         uses: actions/download-artifact@v4
         with:
           name: generated-tests
           path: generated_test/tests/
 
-      # ── Setup Go ──────────────────────────────────────────────────────────
+      # ── Setup Go ────────────────────────────────────────────────────────
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
           cache-dependency-path: application_code/go.mod
 
-      # ── Build & start Go API ──────────────────────────────────────────────
+      # ── Build + Start Go API ─────────────────────────────────────────────
       - name: Start Go API server (:8080)
         working-directory: application_code
         run: |
@@ -155,16 +136,18 @@ jobs:
           ./api-server &
           echo "API_PID=$!" >> $GITHUB_ENV
 
-          echo "⏳ Waiting for API..."
+          echo "⏳ Menunggu API siap..."
           for i in $(seq 1 20); do
-            curl -sf http://localhost:8080/api/health > /dev/null && \
-              { echo "✅ API ready"; break; }
+            curl -sf http://localhost:8080/api/health > /dev/null \
+              && { echo "✅ API ready"; break; }
+            echo "  attempt $i/20..."
             sleep 2
           done
-          curl -sf http://localhost:8080/api/health \
-            || { echo "❌ API failed to start"; exit 1; }
 
-      # ── Setup Node ────────────────────────────────────────────────────────
+          curl -sf http://localhost:8080/api/health \
+            || { echo "❌ API gagal start"; exit 1; }
+
+      # ── Setup Node ───────────────────────────────────────────────────────
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -174,7 +157,7 @@ jobs:
             application_code/package-lock.json
             generated_test/package-lock.json
 
-      # ── Build & start Next.js ─────────────────────────────────────────────
+      # ── Build + Start Next.js ────────────────────────────────────────────
       - name: Start Next.js frontend (:3000)
         working-directory: application_code
         run: |
@@ -183,23 +166,25 @@ jobs:
           npm run start &
           echo "NEXT_PID=$!" >> $GITHUB_ENV
 
-          echo "⏳ Waiting for frontend..."
+          echo "⏳ Menunggu frontend siap..."
           for i in $(seq 1 25); do
-            curl -sf http://localhost:3000 > /dev/null && \
-              { echo "✅ Frontend ready"; break; }
+            curl -sf http://localhost:3000 > /dev/null \
+              && { echo "✅ Frontend ready"; break; }
+            echo "  attempt $i/25..."
             sleep 3
           done
-          curl -sf http://localhost:3000 \
-            || { echo "❌ Frontend failed to start"; exit 1; }
 
-      # ── Install Playwright ────────────────────────────────────────────────
+          curl -sf http://localhost:3000 \
+            || { echo "❌ Frontend gagal start"; exit 1; }
+
+      # ── Install Playwright ───────────────────────────────────────────────
       - name: Install Playwright + Chromium
         working-directory: generated_test
         run: |
           npm ci
           npx playwright install chromium --with-deps
 
-      # ── Run API Tests ─────────────────────────────────────────────────────
+      # ── Run API Tests ────────────────────────────────────────────────────
       - name: 🧪 Run API Tests
         working-directory: generated_test
         env:
@@ -212,7 +197,7 @@ jobs:
             --reporter=list,junit \
             --output=test-results
 
-      # ── Run E2E Tests ─────────────────────────────────────────────────────
+      # ── Run E2E Tests ────────────────────────────────────────────────────
       - name: 🧪 Run E2E Tests
         working-directory: generated_test
         env:
@@ -225,7 +210,7 @@ jobs:
             --reporter=list,junit \
             --output=test-results
 
-      # ── Upload artifacts (selalu, bahkan jika gagal) ──────────────────────
+      # ── Upload artifacts (selalu, termasuk saat gagal) ───────────────────
       - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
@@ -242,7 +227,7 @@ jobs:
           path: generated_test/test-results/results.xml
           retention-days: 14
 
-      - name: Upload screenshots & traces (only on failure)
+      - name: Upload screenshots & traces (hanya saat gagal)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -250,38 +235,12 @@ jobs:
           path: generated_test/test-results/
           retention-days: 7
 
-      # ── Post PR comment ───────────────────────────────────────────────────
-      - name: Post summary to PR
-        if: always() && github.event_name == 'pull_request'
+      # ── Post komentar ke PR ──────────────────────────────────────────────
+      - name: Post summary ke PR
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
             const ok   = '${{ job.status }}' === 'success';
             const icon = ok ? '✅' : '❌';
-            const body = `## ${icon} AI Quality Gate — Gemini CLI + Playwright
-
-| Step | Status |
-|------|--------|
-| 🤖 \`/generate-api-tests\` | ✅ Generated |
-| 🤖 \`/generate-e2e-tests\` | ✅ Generated |
-| ✅ Validation guard | ✅ Passed |
-| 🧪 API Tests | ${ok ? '✅ Passed' : '❌ Failed'} |
-| 🧪 E2E Tests | ${ok ? '✅ Passed' : '❌ Failed'} |
-
-📊 [Download Playwright HTML Report](../actions/runs/${{ github.run_id }})
-
-> Tests generated by **Gemini CLI** via \`.gemini/commands/*.toml\` reading \`swagger.yaml\` + \`page.tsx\`.`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner:        context.repo.owner,
-              repo:         context.repo.repo,
-              body,
-            });
-
-      # ── Cleanup ───────────────────────────────────────────────────────────
-      - name: Cleanup servers
-        if: always()
-        run: |
-          kill $API_PID  2>/dev/null || true
-          kill $NEXT_PID 2>/dev/null || true
+            const body = `## ${icon} AI Quality Gate Report
