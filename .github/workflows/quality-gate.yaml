@@ -6,6 +6,8 @@ on:
     
   push:
     branches: [main, master]
+    paths-ignore:
+      - 'generated_test/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -35,10 +37,31 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: 🔍 Check API test exists
+        id: check_api
+        run: |
+          FILE="generated_test/tests/api/payment-api.spec.ts"
+      
+          if [ -f "$FILE" ] && [ -s "$FILE" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      - name: 🔍 Check E2E test exists
+        id: check_e2e
+        run: |
+          FILE="generated_test/tests/web/checkout-e2e.spec.ts"
+      
+          if [ -f "$FILE" ] && [ -s "$FILE" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
       # Generate API tests
       # Gemini baca: GEMINI.md + .toml + cat application_code/docs/swagger.yaml
       # Output: generated_test/tests/api/payment-api.spec.ts
       - name: 🤖 Generate API Tests
+        if: steps.check_api.outputs.exists != 'true'
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
@@ -50,6 +73,7 @@ jobs:
       # Gemini baca: GEMINI.md + .toml + cat application_code/app/page.tsx
       # Output: generated_test/tests/web/checkout-e2e.spec.ts
       - name: 🤖 Generate E2E Tests
+        if: steps.check_api.outputs.exists != 'true'
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
