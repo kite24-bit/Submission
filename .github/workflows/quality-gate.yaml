@@ -179,9 +179,9 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: |
-            application_code/package-lock.json
-            generated_test/package-lock.json
+          # cache-dependency-path: |
+          #   application_code/package-lock.json
+          #   generated_test/package-lock.json
 
       # ── Build + Start Next.js ────────────────────────────────────────────
       - name: Start Next.js frontend (:3000)
