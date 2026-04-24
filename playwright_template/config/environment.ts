@@ -13,18 +13,18 @@ interface EnvironmentConfig {
 
 const environments: Record<Environment, EnvironmentConfig> = {
     staging: {
-        baseUrl: process.env.STAGING_BASE_URL || 'https://staging.example.com',
-        apiUrl: process.env.STAGING_API_URL || 'https://api-staging.example.com',
+        baseUrl: process.env.STAGING_BASE_URL || 'http://localhost:3000',
+        apiUrl: process.env.STAGING_API_URL || 'http://localhost:8080',
         timeout: 30000,
     },
     uat: {
-        baseUrl: process.env.UAT_BASE_URL || 'https://uat.example.com',
-        apiUrl: process.env.UAT_API_URL || 'https://api-uat.example.com',
+        baseUrl: process.env.UAT_BASE_URL || 'http://localhost:3000',
+        apiUrl: process.env.UAT_API_URL || 'http://localhost:8080',
         timeout: 30000,
     },
     production: {
-        baseUrl: process.env.PROD_BASE_URL || 'https://example.com',
-        apiUrl: process.env.PROD_API_URL || 'https://api.example.com',
+        baseUrl: process.env.PROD_BASE_URL || 'http://localhost:3000',
+        apiUrl: process.env.PROD_API_URL || 'http://localhost:8080',
         timeout: 60000,
     },
 };
