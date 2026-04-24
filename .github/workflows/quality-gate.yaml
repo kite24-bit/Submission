@@ -178,7 +178,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
+          # cache: npm
           # cache-dependency-path: |
           #   application_code/package-lock.json
           #   generated_test/package-lock.json
@@ -187,9 +187,8 @@ jobs:
       - name: Start Next.js frontend (:3000)
         working-directory: application_code
         run: |
-          npm ci
-          npm run build
-          npm run start &
+          npm install
+          npm run dev &
           echo "NEXT_PID=$!" >> $GITHUB_ENV
 
           echo "⏳ Menunggu frontend siap..."
