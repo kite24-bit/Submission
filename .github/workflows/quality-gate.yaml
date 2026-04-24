@@ -3,6 +3,9 @@ name: 🤖 AI Quality Gate — Gemini CLI + Playwright
 on:
   pull_request:
     branches: [main, master]
+    
+  push:
+    branches: [main, master]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
