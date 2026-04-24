@@ -4,8 +4,10 @@ prompt = """
 <CONTEXT>
   Read the Swagger specification by running this shell command:
     cat application_code/docs/swagger.yaml
-
+  Read the Playwright config file within this shell command:
+    cat playwright_template/playwright.config.ts
   Also read GEMINI.md for project context, rules, and file paths.
+  And make sure the script is able to run successfully.
 </CONTEXT>
 
 <TASK>
