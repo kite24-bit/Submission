@@ -310,7 +310,8 @@ jobs:
           script: |
             const ok   = '${{ job.status }}' === 'success';
             const icon = ok ? '✅' : '❌';
-            const body = `## ${icon} AI Quality Gate Report
+            const body = `## ${icon} AI Quality Gate Report`;
+            console.log(body);
 
       - name: Auto approve PR
         if: success()
