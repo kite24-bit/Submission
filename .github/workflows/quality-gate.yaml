@@ -57,7 +57,7 @@ jobs:
         run: |
           FORCE=false
 
-          if echo "${{ github.event.comment.body }}" | grep -q "/regenerate-tests"; then
+          if echo "${{ github.event.pull_request.title}}" | grep -q "/regenerate-tests"; then
               FORCE=true
           fi
 
