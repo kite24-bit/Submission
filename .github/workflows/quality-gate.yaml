@@ -311,3 +311,16 @@ jobs:
             const ok   = '${{ job.status }}' === 'success';
             const icon = ok ? '✅' : '❌';
             const body = `## ${icon} AI Quality Gate Report
+
+      - name: Auto approve PR
+        if: success()
+        uses: hmarr/auto-approve-action@v4
+        with:
+          github-token: ${{ secrets.CHECKOUT_TOKEN }}
+
+      - name: Request changes
+        if: failure()
+        run: |
+          gh pr review ${{ github.event.pull_request.number }} \
+            --request-changes \
+            --body "❌ Tests failed"
