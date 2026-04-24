@@ -38,7 +38,7 @@ jobs:
       - name: 🤖 Generate API Tests
         uses: google-github-actions/run-gemini-cli@v0
         with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
           prompt: '/generate-api-tests'
 
       # Generate E2E tests
@@ -47,7 +47,7 @@ jobs:
       - name: 🤖 Generate E2E Tests
         uses: google-github-actions/run-gemini-cli@v0
         with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
           prompt: '/generate-e2e-tests'
 
       # Guard: pastikan output Gemini valid sebelum lanjut ke run
