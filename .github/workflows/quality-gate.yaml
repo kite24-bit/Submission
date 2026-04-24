@@ -1,8 +1,18 @@
 name: 🤖 AI Quality Gate — Gemini CLI + Playwright
 
 on:
+  # workflow_dispatch:
+  #     inputs:
+  #       repoA:
+  #         required: true
+  #       pr_number:
+  #         required: true
+          
   pull_request:
-    branches: [main, master]
+    # branches: [main, master]
+      types: [opened, synchronize]
+  issue_comment:
+    types: [created]  
     
   push:
     branches: [main, master]
@@ -30,57 +40,99 @@ jobs:
     timeout-minutes: 10
 
     permissions:
-      contents: read
+      contents: write
 
     steps:
-      # Satu repo = satu checkout, semua sudah ada di dalam
-      - name: Checkout repo
+      # Checkout PR branch
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: 🔍 Check API test exists
-        id: check_api
+        with:
+          ref: ${{ github.head_ref }}
+          
+      # - name: Checkout repo
+      #   uses: actions/checkout@v4
+      # 2. Detect FORCE command
+      - name: Detect force regenerate
+        id: force
         run: |
-          FILE="generated_test/tests/api/payment-api.spec.ts"
-      
-          if [ -f "$FILE" ] && [ -s "$FILE" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
+          FORCE=false
+
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            if echo "${{ github.event.comment.body }}" | grep -q "/regenerate-tests"; then
+              FORCE=true
+            fi
           fi
-      - name: 🔍 Check E2E test exists
-        id: check_e2e
+
+          echo "force=$FORCE" >> $GITHUB_OUTPUT
+
+      # 3. Restore cache
+      - name: Restore cache
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .llm_cache
+          key: llm-cache-${{ hashFiles('src/**/*.ts') }}
+
+      # 4. Decide mode (SUPER SIMPLE)
+      - name: Decide
+        id: decide
         run: |
-          FILE="generated_test/tests/web/checkout-e2e.spec.ts"
-      
-          if [ -f "$FILE" ] && [ -s "$FILE" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+          if [ "${{ steps.force.outputs.force }}" = "true" ]; then
+            echo "mode=force" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.cache.outputs.cache-hit }}" = "true" ]; then
+            echo "mode=cache" >> $GITHUB_OUTPUT
+          elif [ -d "generated_tests" ] && [ "$(ls -A generated_tests)" ]; then
+            echo "mode=exists" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "mode=miss" >> $GITHUB_OUTPUT
           fi
-      # # Generate API tests
-      # # Gemini baca: GEMINI.md + .toml + cat application_code/docs/swagger.yaml
-      # # Output: generated_test/tests/api/payment-api.spec.ts
-      # - name: 🤖 Generate API Tests
-      #   if: steps.check_api.outputs.exists != 'true'
-      #   uses: google-github-actions/run-gemini-cli@v0
-      #   with:
-      #     gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-      #     prompt: '/generate-api-tests'
-      #   env:
-      #     GEMINI_CLI_TRUST_WORKSPACE: true
 
-      # # Generate E2E tests
-      # # Gemini baca: GEMINI.md + .toml + cat application_code/app/page.tsx
-      # # Output: generated_test/tests/web/checkout-e2e.spec.ts
-      # - name: 🤖 Generate E2E Tests
-      #   if: steps.check_e2e.outputs.exists != 'true'
-      #   uses: google-github-actions/run-gemini-cli@v0
-      #   with:
-      #     gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-      #     prompt: '/generate-e2e-tests'
-      #   env:
-      #     GEMINI_CLI_TRUST_WORKSPACE: true
 
+      # Generate API tests
+      # Gemini baca: GEMINI.md + .toml + cat application_code/docs/swagger.yaml
+      # Output: generated_test/tests/api/payment-api.spec.ts
+      - name: 🤖 Generate API Tests
+        if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
+        uses: google-github-actions/run-gemini-cli@v0
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          prompt: '/generate-api-tests'
+        env:
+          GEMINI_CLI_TRUST_WORKSPACE: true
+
+      # Generate E2E tests
+      # Gemini baca: GEMINI.md + .toml + cat application_code/app/page.tsx
+      # Output: generated_test/tests/web/checkout-e2e.spec.ts
+      - name: 🤖 Generate E2E Tests
+        if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
+        uses: google-github-actions/run-gemini-cli@v0
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          prompt: '/generate-e2e-tests'
+        env:
+          GEMINI_CLI_TRUST_WORKSPACE: true
+          
+      - name: Save cache
+        if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
+        run: |
+          mkdir -p .llm_cache
+          cp -r generated_tests/* .llm_cache/
+
+      - name: Use cache
+        if: steps.decide.outputs.mode == 'cache'
+        run: |
+          mkdir -p generated_tests
+          cp -r .llm_cache/* generated_tests/
+
+      - name: Commit tests
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add generated_tests
+
+          git diff --cached --quiet || git commit -m "chore: update generated tests"
+          git push
       # # Guard: pastikan output Gemini valid sebelum lanjut ke run
       # # Cegah hallucination masuk ke test execution
       # - name: ✅ Validate generated files
