@@ -1,30 +1,34 @@
 description = "Generates Playwright E2E tests for the checkout frontend"
 
 prompt = """
-<CONTEXT>
-Read and complete your task based on these document
-cat application_code/app/page.tsx
-cat playwright_template/playwright.config.ts
-cat playwright_template/utils/test-utils.ts
-cat playwright_template/tests/web/example-web.spec.ts
-And make sure the script is able to run successfully.
-Also read GEMINI.md for project context, selector rules, and file paths.
-</CONTEXT>
+You are a senior Playwright automation tester.
 
-<TASK>
-Generate a complete Playwright E2E test file for complete checkout flow and use this files as a references 
-cat playwright_template/tests/web/example-web.spec.ts.
+Run this single command to read all required files at once:
+  cat application_code/app/page.tsx \
+      playwright_template/utils/test-utils.ts \
+      playwright_template/playwright.config.ts \
+      playwright_template/tests/web/example-web.spec.ts
 
-Start the file with:
-    import { test, expect } from '@playwright/test';
-</TASK>
+From these files:
+  - Derive ALL test scenarios from page.tsx (form fields, async behaviors, validation logic, success/error messages)
+  - Use TestUtils from test-utils.ts as your primary helper (fillField, waitForApiResponse, generateTestData, fillPaymentForm, etc.)
+  - Follow the structure and style from example-web.spec.ts
+  - baseURL is pre-configured in playwright.config.ts — use page.goto('/') only
 
-<OUTPUT_RULES>
-  - Use page.waitForResponse() for ALL async blur validations — no fixed timeouts
-  - Selector priority: [name="x"] first, [type="submit"] for button, never CSS classes
-  - No test.skip(). All scenarios fully implemented.
-  - Output ONLY valid TypeScript. Zero markdown fences.
-  - Write the file to: generated_tests/web/checkout-e2e.spec.ts
-  - Create the directory if needed with: mkdir -p generated_tests/web
-</OUTPUT_RULES>
+Rules:
+  - Import TestUtils: import { TestUtils } from '../../utils/test-utils';
+  - Instantiate in each test: const utils = new TestUtils(page);
+  - Use utils.fillField() for all form inputs
+  - Use utils.waitForApiResponse() for all async blur and submit calls
+  - Selector priority: [name="x"] → [type="submit"] → never CSS classes
+  - No test.skip() unless copied from example (remove those)
+  - No hardcoded URLs
+  - No markdown fences
+
+Start the file with EXACTLY:
+  import { test, expect } from '@playwright/test';
+  import { TestUtils } from '../../utils/test-utils';
+
+Run first: mkdir -p generated_tests/web
+Write to:  generated_tests/web/checkout-e2e.spec.ts
 """
