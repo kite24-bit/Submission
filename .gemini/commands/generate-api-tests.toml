@@ -15,6 +15,9 @@ And make sure the script is able to run successfully.
 <TASK>
 Generate a complete, production-quality Playwright API test file in TypeScript.
 Cover all schema-based scenarios use swagger.json as a reference
+  Start the file with:
+    import { test, expect } from '@playwright/test';
+    import { ApiHelper } from '../../utils/api-helper';
 </TASK>
 
 <OUTPUT_RULES>
