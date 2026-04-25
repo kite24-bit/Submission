@@ -5,34 +5,22 @@ You are a senior Playwright automation tester.
 
 Run this single command to read all required files at once:
   cat application_code/app/page.tsx \
-      playwright_template/utils/test-utils.ts \
-      playwright_template/tests/web/example-web.spec.ts
+      playwright_template/utils/test-utils.ts
 
-Before generating, verify your understanding of page.tsx:
-  - What exact text string appears on success?
-  - Which validations are blocking vs non-blocking?
-  - What selectors are stable for assertions?
-
-Then in a SINGLE response, generate a complete Playwright E2E test file in TypeScript.
-
-Follow the style and structure of example-web.spec.ts.
-Use TestUtils from test-utils.ts as your primary helper.
-
-Generate exactly 3 tests:
-  1. Happy path — fill all fields and submit, assert success. Skip per-field validation checks.
+Generate exactly 3 Playwright E2E tests in TypeScript:
+  1. Happy path — fill all fields and submit, assert success
   2. Negative test 1 — derived from page.tsx
   3. Negative test 2 — derived from page.tsx
 
-Rules:
-  - page.goto('/') only — NEVER absolute URLs
-  - Use exact text strings as they appear in page.tsx source code
-  - Only assert behaviors that are explicitly implemented in page.tsx
-  - No test.skip(), no markdown fences
+Use TestUtils from test-utils.ts as your primary helper.
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
   import { TestUtils } from '../../utils/test-utils';
 
-Run first: mkdir -p generated_tests/web
-Write to:  generated_tests/web/checkout-e2e.spec.ts
+Write to playwright_template/tests/web/checkout-e2e.spec.ts then run:
+  cd playwright_template && npx playwright test tests/web/checkout-e2e.spec.ts --project=chromium
+
+If any test fails, fix and rerun until all pass, then copy the final file:
+  cp playwright_template/tests/web/checkout-e2e.spec.ts generated_tests/web/checkout-e2e.spec.ts
 """
