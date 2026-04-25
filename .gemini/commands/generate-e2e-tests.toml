@@ -13,7 +13,7 @@ Also read GEMINI.md for project context, selector rules, and file paths.
 </CONTEXT>
 
 <TASK>
-Generate a Playwright E2E test for checkout flow.
+Generate a Playwright E2E test for checkout flow based on this file application_code/app/page.tsx.
 
 Cover ONLY:
 1. Happy path (successful checkout)
