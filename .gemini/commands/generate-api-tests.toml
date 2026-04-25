@@ -6,6 +6,7 @@ Read ONLY:
 
 - application_code/docs/swagger.yaml OR swagger.json (prefer json if exists)
 - playwright_template/playwright.config.ts
+- playwright_template/tests/api/example-api.spec.ts (for import reference)
 
 If needed, read ONLY relevant helper from:
 playwright_template/utils/
@@ -17,7 +18,6 @@ And make sure the script is able to run successfully.
 
 <TASK>
 Generate a complete, production-quality Playwright API test file in TypeScript.
-
 Cover all schema-based scenarios:
 - valid request
 - invalid request (schema violation)
