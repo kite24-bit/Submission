@@ -5,20 +5,21 @@ You are a senior Playwright automation tester.
 
 Run this single command to read all required files at once:
   cat application_code/docs/swagger.json \
-      playwright_template/playwright.config.ts \
-      playwright_template/utils/api-helper.ts
+      playwright_template/utils/api-helper.ts \
+      playwright_template/tests/api/example-api.spec.ts
 
-Then generate a complete Playwright API test file in TypeScript.
+In a SINGLE response, generate a complete Playwright API test file in TypeScript.
+
+Follow the style and structure of example-api.spec.ts.
+Cover all endpoints and schemas from swagger.json.
+Use typeof checks for all response fields based on swagger type definitions.
+Handle endpoints that have multiple response status codes in swagger accordingly.
 
 Rules:
-  - Cover ALL endpoints and schemas found in swagger.json
-  - For each endpoint: happy-path + negative test
-  - baseURL is pre-configured in playwright.config.ts — use relative paths only
-  - No hardcoded URLs
-  - No test.skip()
-  - No markdown fences
+  - NEVER use absolute URLs — relative paths only
+  - No test.skip(), no markdown fences
 
-Start the file with:
+Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
   import { ApiHelper } from '../../utils/api-helper';
 
