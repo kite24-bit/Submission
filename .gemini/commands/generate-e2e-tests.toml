@@ -2,19 +2,17 @@ description = "Generates Playwright E2E tests for the checkout frontend"
 
 prompt = """
 <CONTEXT>
-Read ONLY necessary files:
-
-- application_code/app/page.tsx
-- playwright_template/playwright.config.ts
-- playwright_template/utils/test-utils.ts
-- playwright_template/tests/web/example-web.spec.ts (use this as a reference)
-
-And make sure the script is able to run successfully.
-Also read GEMINI.md for project context, selector rules, and file paths.
+  Read the React checkout component by running:
+    cat application_code/app/page.tsx
+  Read the Playwright config file within this shell command:
+    cat playwright_template/playwright.config.ts
+  And make sure the script is able to run successfully.
+  Also read GEMINI.md for project context, selector rules, and file paths.
 </CONTEXT>
 
 <TASK>
-Generate a Playwright E2E test for checkout flow based on this file application_code/app/page.tsx.
+Generate a Playwright E2E test for checkout flow and use this files as a references 
+cat playwright_template/tests/web/example-web.spec.ts.
 
 Cover ONLY:
 1. Happy path (successful checkout)
