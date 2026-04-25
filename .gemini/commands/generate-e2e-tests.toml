@@ -19,6 +19,8 @@ You are a senior Playwright Automation Tester.
 Generate a complete Playwright E2E test file for complete checkout flow and use this files as a references 
 cat playwright_template/tests/web/example-web.spec.ts.
 beside that generate 2 other negative test.
+  Start the file with:
+    import { test, expect } from '@playwright/test';
 </TASK>
 
 <OUTPUT_RULES>
