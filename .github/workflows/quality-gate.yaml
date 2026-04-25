@@ -1,12 +1,6 @@
 name: 🤖 AI Quality Gate — Gemini CLI + Playwright
  
 on:
-  # workflow_dispatch:
-  #     inputs:
-  #       repoA:
-  #         required: true
-  #       pr_number:
-  #         required: true
           
   pull_request:
     # branches: [main, master]
