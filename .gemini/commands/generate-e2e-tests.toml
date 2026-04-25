@@ -6,8 +6,9 @@ Read ONLY necessary files:
 
 - application_code/app/page.tsx
 - playwright_template/playwright.config.ts
-- playwright_template/tests/web/example-web.spec.ts (for import reference)
 - playwright_template/utils/test-utils.ts
+- playwright_template/tests/web/example-web.spec.ts (use this as a reference)
+
 And make sure the script is able to run successfully.
 Also read GEMINI.md for project context, selector rules, and file paths.
 </CONTEXT>
@@ -19,8 +20,6 @@ Cover ONLY:
 1. Happy path (successful checkout)
 2. One critical validation error (invalid input)
 3. One network failure scenario
-
-Do NOT over-generate.
 </TASK>
 
 <OUTPUT_RULES>
