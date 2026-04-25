@@ -2,24 +2,20 @@ description = "Generates Playwright E2E tests for the checkout frontend"
 
 prompt = """
 <CONTEXT>
-You are a senior Playwright Automation Tester.
-  Read and explore the React checkout component by running:
-    cat application_code/app/page.tsx
-  Read the Playwright config file within this shell command:
-    cat playwright_template/playwright.config.ts
-  Read and utilize this playwright test utils for web to know how to avoid flakyness and implement it to your test generation by running:
-    cat playwright_template/utils/test-utils.ts
-  read the playwright test example and use it as reference for web by running:
-    cat playwright_template/tests/web/example-web.spec.ts
-  And make sure the script is able to run successfully.
-  Also read GEMINI.md for project context, selector rules, and file paths.
+Read and complete your task based on these document
+cat application_code/app/page.tsx
+cat playwright_template/playwright.config.ts
+cat playwright_template/utils/test-utils.ts
+cat playwright_template/tests/web/example-web.spec.ts
+And make sure the script is able to run successfully.
+Also read GEMINI.md for project context, selector rules, and file paths.
 </CONTEXT>
 
 <TASK>
 Generate a complete Playwright E2E test file for complete checkout flow and use this files as a references 
 cat playwright_template/tests/web/example-web.spec.ts.
-beside that generate 2 other negative test.
-  Start the file with:
+
+Start the file with:
     import { test, expect } from '@playwright/test';
 </TASK>
 
