@@ -166,16 +166,6 @@ jobs:
           echo "========== checkout-e2e.spec.ts =========="
           cat generated_tests/web/checkout-e2e.spec.ts || echo "(not found)"
 
-      # # Upload sebagai artifact untuk dipakai job run-tests
-      # - name: Upload generated tests
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: generated-tests
-      #     path: generated_test/tests/
-      #     retention-days: 7
-
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # JOB 2 — run-tests
 #
