@@ -2,25 +2,26 @@ description = "Generates Playwright API tests from the Swagger specification"
 
 prompt = """
 <CONTEXT>
-  Read the Swagger specification by running this shell command:
-    cat application_code/docs/swagger.yaml
-    cat application_code/docs/swagger.json
-  Read the Playwright config file within this shell command:
-    cat playwright_template/playwright.config.ts
-  Also read GEMINI.md for project context, rules, and file paths.
-  And make sure the script is able to run successfully.
+Read ONLY:
+
+- application_code/docs/swagger.yaml OR swagger.json (prefer json if exists)
+- playwright_template/playwright.config.ts
+
+If needed, read ONLY relevant helper from:
+playwright_template/utils/
+
+Also read GEMINI.md for project context, rules, and file paths.
+Do NOT read all files.
+And make sure the script is able to run successfully.
 </CONTEXT>
 
 <TASK>
-  Generate a complete, production-quality Playwright API test file in TypeScript.
+Generate a complete, production-quality Playwright API test file in TypeScript.
 
-  Cover ALL endpoints that is within the application_code/docs/*.json
-
-  and use this application_code/docs/*.yaml as a parameter refernces
-
-  Use schema-aware assertions from the Swagger definitions within the directory application_code/docs/*
-
-  read all the files in this folder playwright_template/utils/* and chose the files related to API testing. And use it as an additional.
+Cover all schema-based scenarios:
+- valid request
+- invalid request (schema violation)
+- enum and required field validation
 
 </TASK>
 
