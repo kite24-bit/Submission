@@ -261,7 +261,29 @@ jobs:
         run: |
           npm install
           npx playwright install
+          
+      - name: Generate .env
+        run: |
+          cat <<EOF > .env
+          
+          TEST_ENV=staging
 
+          API_SECRET_KEY=${{ secrets.API_SECRET_KEY }}
+          STAGING_API_URL=${{ secrets.STAGING_API_URL }}
+          
+          STAGING_BASE_URL=${{ secrets.STAGING_BASE_URL }}
+
+          TEST_USERNAME=${{ secrets.TEST_USERNAME }}
+          TEST_PASSWORD=${{ secrets.TEST_PASSWORD }}
+
+          HEADLESS=true
+          TIMEOUT=30000
+
+          GENERATE_REPORT=true
+          TAKE_SCREENSHOTS=true
+          RECORD_VIDEOS=false
+          ENABLE_TRACING=false
+          EOF
 
       # ── Run API Tests ────────────────────────────────────────────────────
       - name: 🧪 Run API Tests
@@ -309,18 +331,3 @@ jobs:
             const icon = ok ? '✅' : '❌';
             const body = `## ${icon} AI Quality Gate Report`;
             console.log(body);
-
-      # - name: Auto approve PR
-      #   if: success()
-      #   uses: hmarr/auto-approve-action@v4
-      #   with:
-      #     github-token: ${{ secrets.CHECKOUT_TOKEN }}
-
-      # - name: Request changes
-      #   if: failure()
-      #   run: |
-      #     gh pr review ${{ github.event.pull_request.number }} \
-      #       --request-changes \
-      #       --body "❌ Tests failed"
-      #   env:
-      #     GH_TOKEN: ${{ github.token }}
