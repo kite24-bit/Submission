@@ -4,7 +4,6 @@ prompt = """
 <CONTEXT>
   Read the Swagger specification by running this shell command:
     cat application_code/docs/swagger.yaml
-    cat application_code/docs/swagger.json
   Read the Playwright config file within this shell command:
     cat playwright_template/playwright.config.ts
   Also read GEMINI.md for project context, rules, and file paths.
@@ -14,20 +13,35 @@ prompt = """
 <TASK>
   Generate a complete, production-quality Playwright API test file in TypeScript.
 
-  Cover ALL endpoints that is within the application_code/docs/*.json
+  Cover ALL 4 endpoints:
+    1. GET  /api/health
+    2. POST /api/checkout
+    3. POST /api/validate-card
+    4. POST /api/validate-email
 
-  and use this application_code/docs/*.yaml as a parameter refernces
+  For EACH endpoint generate:
+    - One happy-path test with valid input
+    - One negative/edge-case test (missing field, invalid data, wrong type)
 
-  Use schema-aware assertions from the Swagger definitions within the directory application_code/docs/*
+  Use schema-aware assertions from the Swagger definitions:
+    - HealthResponse:  { status: string, message: string }
+    - PaymentResponse: { status: string, message: string }
+    - CardResponse:    { valid: boolean, message: string }
+    - EmailResponse:   { valid: boolean, message: string }
+    - ErrorResponse:   { error: string }
 
-  read all the files in this folder playwright_template/utils/* and chose the files related to API testing. And use it as an additional.
+  Import and use ApiHelper from '../../utils/api-helper'.
+  baseURL is already set to http://localhost:8080 — use relative paths ('/api/health').
 
+  Start the file with:
+    import { test, expect } from '@playwright/test';
+    import { ApiHelper } from '../../utils/api-helper';
 </TASK>
 
 <OUTPUT_RULES>
   - Output ONLY valid TypeScript. Zero markdown fences.
   - No test.skip(). Every scenario fully implemented.
-  - Write the file to: generated_tests/api/payment-api.spec.ts
-  - Create the directory if needed with: mkdir -p generated_tests/api
+  - Write the file to: generated_test/tests/api/payment-api.spec.ts
+  - Create the directory if needed with: mkdir -p generated_test/tests/api
 </OUTPUT_RULES>
 """
