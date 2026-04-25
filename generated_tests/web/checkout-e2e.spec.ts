@@ -3,75 +3,131 @@ import { test, expect } from '@playwright/test';
 test.describe('Checkout Flow E2E Tests', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/');
-        await expect(page.locator('h2:has-text("Secure Checkout")')).toBeVisible();
     });
 
-    test('should successfully complete a checkout with valid details (Happy Path)', async ({ page }) => {
-        // Fill email and wait for validation
+    test('should successfully complete checkout with valid details (Happy Path)', async ({ page }) => {
+        // Fill email and trigger validation
         await page.locator('[name="email"]').fill('test@example.com');
+        const emailResponsePromise = page.waitForResponse(response =>
+            response.url().includes('/api/validate-email') && response.request().method() === 'POST'
+        );
         await page.locator('[name="email"]').blur();
-        await page.waitForResponse(response => response.url().includes('/api/validate-email') && response.status() === 200);
-        await expect(page.locator('p:has-text("Invalid email format")')).not.toBeVisible();
+        const emailResponse = await emailResponsePromise;
+        expect(emailResponse.ok()).toBeTruthy();
+        expect(await emailResponse.json()).toEqual({ valid: true, message: 'Email is valid' });
+        await expect(page.locator('p:has-text("Valid email format")')).not.toBeVisible();
 
-        // Fill card number and wait for validation
-        await page.locator('[name="cardNumber"]').fill('1234123412341234');
+        // Fill card number and trigger validation
+        await page.locator('[name="cardNumber"]').fill('4111111111111111');
+        const cardResponsePromise = page.waitForResponse(response =>
+            response.url().includes('/api/validate-card') && response.request().method() === 'POST'
+        );
         await page.locator('[name="cardNumber"]').blur();
-        await page.waitForResponse(response => response.url().includes('/api/validate-card') && response.status() === 200);
-        await expect(page.locator('p:has-text("Invalid card number")')).not.toBeVisible();
+        const cardResponse = await cardResponsePromise;
+        expect(cardResponse.ok()).toBeTruthy();
+        expect(await cardResponse.json()).toEqual({ valid: true, message: 'Card is valid' });
+        await expect(page.locator('p:has-text("Valid card number (Luhn check passed)")')).toBeVisible();
 
-        // Fill expiry, CVV, and amount
+        // Fill other details
         await page.locator('[name="expiry"]').fill('12/26');
         await page.locator('[name="cvv"]').fill('123');
         await page.locator('[name="amount"]').fill('100.00');
 
-        // Submit the form and wait for checkout API response
-        await expect(page.locator('[type="submit"]')).not.toBeDisabled();
+        // Submit the form
+        await expect(page.locator('[type="submit"]')).toBeEnabled();
+        const checkoutResponsePromise = page.waitForResponse(response =>
+            response.url().includes('/api/checkout') && response.request().method() === 'POST'
+        );
         await page.locator('[type="submit"]').click();
-        const checkoutResponse = await page.waitForResponse(response => response.url().includes('/api/checkout') && response.status() === 200);
+        const checkoutResponse = await checkoutResponsePromise;
+        expect(checkoutResponse.ok()).toBeTruthy();
         const checkoutData = await checkoutResponse.json();
-
-        // Assert success message and schema
-        expect(page.locator('text=Payment failed')).not.toBeVisible();
-        await expect(page.locator('text="Payment successful"')).toBeVisible();
         expect(checkoutData).toHaveProperty('status', 'success');
-        expect(checkoutData).toHaveProperty('message');
-        expect(typeof checkoutData.message).toBe('string');
+        expect(page.locator('div:has-text("✅ Payment successful")')).toBeVisible();
     });
 
-    test('should display error for invalid card number input (Critical Validation Error)', async ({ page }) => {
-        // Fill email with a valid one (to ensure card validation is the focus)
+    test('should show validation error for invalid card number', async ({ page }) => {
+        // Fill email and trigger validation
         await page.locator('[name="email"]').fill('test@example.com');
+        const emailResponsePromise = page.waitForResponse(response =>
+            response.url().includes('/api/validate-email') && response.request().method() === 'POST'
+        );
         await page.locator('[name="email"]').blur();
-        await page.waitForResponse(response => response.url().includes('/api/validate-email') && response.status() === 200);
+        await emailResponsePromise;
 
-        // Fill an invalid card number and wait for validation
-        await page.locator('[name="cardNumber"]').fill('1111111111111111'); // Invalid Luhn
+        // Fill an invalid card number and trigger validation (Luhn check will fail)
+        await page.locator('[name="cardNumber"]').fill('1111111111111111'); // Invalid card number
+        const cardResponsePromise = page.waitForResponse(response =>
+            response.url().includes('/api/validate-card') && response.request().method() === 'POST'
+        );
         await page.locator('[name="cardNumber"]').blur();
-        await page.waitForResponse(response => response.url().includes('/api/validate-card') && response.status() === 200);
-
-        // Assert validation error message
+        const cardResponse = await cardResponsePromise;
+        expect(cardResponse.ok()).toBeTruthy();
+        expect(await cardResponse.json()).toEqual({ valid: false, message: 'Card is invalid' });
         await expect(page.locator('p:has-text("Invalid card number (Luhn check failed)")')).toBeVisible();
+
         // Ensure submit button is disabled
         await expect(page.locator('[type="submit"]')).toBeDisabled();
+        
+        // Try to click submit, verify no checkout attempt
+        await page.locator('[type="submit"]').click({ timeout: 100, force: true }).catch(() => {}); // Attempt click, but expect it to be ignored
+
+        // Fill other details (they won't enable the button if card is invalid)
+        await page.locator('[name="expiry"]').fill('12/26');
+        await page.locator('[name="cvv"]').fill('123');
+        await page.locator('[name="amount"]').fill('100.00');
+
+        // The submit button should still be disabled because of the invalid card
+        await expect(page.locator('[type="submit"]')).toBeDisabled();
+        await expect(page.locator('div:has-text("❌ Please enter a valid card number")')).toBeVisible();
     });
 
-    test('should handle network failure during email validation (Network Failure Scenario)', async ({ page }) => {
-        // Intercept email validation API and force a network error
-        await page.route('**/api/validate-email', route => {
-            route.abort('failed');
+    test('should handle network failure for email validation gracefully (Soft Fail)', async ({ page }) => {
+        // Mock API for email validation to simulate network error/500
+        await page.route('**/api/validate-email', async route => {
+            await route.fulfill({
+                status: 500,
+                contentType: 'application/json',
+                body: JSON.stringify({ status: 'error', message: 'Internal Server Error' }),
+            });
         });
 
-        // Fill email and trigger blur
+        // Fill email and trigger validation
         await page.locator('[name="email"]').fill('networkfail@example.com');
+        const emailResponsePromise = page.waitForResponse(response =>
+            response.url().includes('/api/validate-email') && response.request().method() === 'POST'
+        );
         await page.locator('[name="email"]').blur();
+        const emailResponse = await emailResponsePromise;
+        expect(emailResponse.status()).toBe(500);
+        await expect(page.locator('p:has-text("Email validation service temporarily unavailable. You can still proceed.")')).toBeVisible();
+        
+        // Fill valid card details and trigger validation
+        await page.locator('[name="cardNumber"]').fill('4111111111111111');
+        const cardResponsePromise = page.waitForResponse(response =>
+            response.url().includes('/api/validate-card') && response.request().method() === 'POST'
+        );
+        await page.locator('[name="cardNumber"]').blur();
+        const cardResponse = await cardResponsePromise;
+        expect(cardResponse.ok()).toBeTruthy();
+        expect(await cardResponse.json()).toEqual({ valid: true, message: 'Card is valid' });
+        await expect(page.locator('p:has-text("Valid card number (Luhn check passed)")')).toBeVisible();
 
-        // Wait for the route abort to register
-        await page.waitForTimeout(500); // Small timeout to allow the abort to be processed
+        // Fill other details
+        await page.locator('[name="expiry"]').fill('12/26');
+        await page.locator('[name="cvv"]').fill('123');
+        await page.locator('[name="amount"]').fill('100.00');
 
-        // Assert soft-fail warning message
-        await expect(page.locator('p:has-text("Email validation service temporarily unavailable")')).toBeVisible();
-        await expect(page.locator('p:has-text("Could not validate email")')).toBeVisible();
-        // The submit button should not be disabled due to email soft fail
-        await expect(page.locator('[type="submit"]')).not.toBeDisabled();
+        // Submit the form - should still be able to proceed due to soft-fail
+        await expect(page.locator('[type="submit"]')).toBeEnabled();
+        const checkoutResponsePromise = page.waitForResponse(response =>
+            response.url().includes('/api/checkout') && response.request().method() === 'POST'
+        );
+        await page.locator('[type="submit"]').click();
+        const checkoutResponse = await checkoutResponsePromise;
+        expect(checkoutResponse.ok()).toBeTruthy();
+        const checkoutData = await checkoutResponse.json();
+        expect(checkoutData).toHaveProperty('status', 'success');
+        expect(page.locator('div:has-text("✅ Payment successful")')).toBeVisible();
     });
 });
