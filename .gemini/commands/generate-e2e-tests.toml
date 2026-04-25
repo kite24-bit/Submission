@@ -6,6 +6,7 @@ Read ONLY necessary files:
 
 - application_code/app/page.tsx
 - playwright_template/playwright.config.ts
+- playwright_template/tests/web/example-web.spec.ts (for import reference)
 
 If needed, read ONLY relevant helper file from:
 playwright_template/utils/
