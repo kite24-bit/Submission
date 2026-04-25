@@ -93,8 +93,8 @@ jobs:
         if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
         uses: google-github-actions/run-gemini-cli@v0
         with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          gemini_model: models/gemini-1.5-flash
+          gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
+          gemini_model: models/gemini-2.5-flash-lite
           prompt: '/generate-api-tests'
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
@@ -106,9 +106,9 @@ jobs:
         if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
         uses: google-github-actions/run-gemini-cli@v0
         with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
           prompt: '/generate-e2e-tests'
-          gemini_model: models/gemini-1.5-flash
+          gemini_model: models/gemini-2.5-flash-lite
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
           
