@@ -265,6 +265,7 @@ jobs:
       - name: Generate .env
         working-directory: playwright_template
         run: |
+          cp .env.example .env
           cat <<EOF > .env
           
           TEST_ENV=staging
