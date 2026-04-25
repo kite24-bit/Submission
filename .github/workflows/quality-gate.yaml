@@ -94,7 +94,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          gemini_model: models/gemini-2.5-flash-lite
+          gemini_model: models/gemini-2.5-flash
           prompt: '/generate-api-tests'
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
@@ -108,7 +108,7 @@ jobs:
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: '/generate-e2e-tests'
-          gemini_model: models/gemini-2.5-flash-lite
+          gemini_model: models/gemini-2.5-flash
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
           
@@ -133,41 +133,41 @@ jobs:
 
           git diff --cached --quiet || git commit -m "chore: update generated tests"
           git push
-      # # Guard: pastikan output Gemini valid sebelum lanjut ke run
-      # # Cegah hallucination masuk ke test execution
-      # - name: ✅ Validate generated files
-      #   run: |
-      #     API_FILE="generated_test/tests/api/payment-api.spec.ts"
-      #     E2E_FILE="generated_test/tests/web/checkout-e2e.spec.ts"
+      # Guard: pastikan output Gemini valid sebelum lanjut ke run
+      # Cegah hallucination masuk ke test execution
+      - name: ✅ Validate generated files
+        run: |
+          API_FILE="generated_test/tests/api/payment-api.spec.ts"
+          E2E_FILE="generated_test/tests/web/checkout-e2e.spec.ts"
 
-      #     for FILE in "$API_FILE" "$E2E_FILE"; do
-      #       echo "--- Checking: $FILE ---"
+          for FILE in "$API_FILE" "$E2E_FILE"; do
+            echo "--- Checking: $FILE ---"
 
-      #       [ -f "$FILE" ] \
-      #         || { echo "❌ File tidak ditemukan: $FILE"; exit 1; }
+            [ -f "$FILE" ] \
+              || { echo "❌ File tidak ditemukan: $FILE"; exit 1; }
 
-      #       grep -q "@playwright/test" "$FILE" \
-      #         || { echo "❌ Missing Playwright import di $FILE"; exit 1; }
+            grep -q "@playwright/test" "$FILE" \
+              || { echo "❌ Missing Playwright import di $FILE"; exit 1; }
 
-      #       grep -qE "test\(|test\.describe\(" "$FILE" \
-      #         || { echo "❌ Tidak ada test() di $FILE"; exit 1; }
+            grep -qE "test\(|test\.describe\(" "$FILE" \
+              || { echo "❌ Tidak ada test() di $FILE"; exit 1; }
 
-      #       LINES=$(wc -l < "$FILE")
-      #       [ "$LINES" -ge 20 ] \
-      #         || { echo "❌ $FILE terlalu pendek ($LINES baris)"; exit 1; }
+            LINES=$(wc -l < "$FILE")
+            [ "$LINES" -ge 20 ] \
+              || { echo "❌ $FILE terlalu pendek ($LINES baris)"; exit 1; }
 
-      #       echo "✅ $FILE valid ($LINES baris)"
-      #     done
+            echo "✅ $FILE valid ($LINES baris)"
+          done
 
-      # # Print ke log CI supaya reviewer bisa inspect output Gemini
-      # - name: 📄 Print generated tests
-      #   if: always()
-      #   run: |
-      #     echo "========== payment-api.spec.ts =========="
-      #     cat generated_test/tests/api/payment-api.spec.ts || echo "(not found)"
-      #     echo ""
-      #     echo "========== checkout-e2e.spec.ts =========="
-      #     cat generated_test/tests/web/checkout-e2e.spec.ts || echo "(not found)"
+      # Print ke log CI supaya reviewer bisa inspect output Gemini
+      - name: 📄 Print generated tests
+        if: always()
+        run: |
+          echo "========== payment-api.spec.ts =========="
+          cat generated_test/tests/api/payment-api.spec.ts || echo "(not found)"
+          echo ""
+          echo "========== checkout-e2e.spec.ts =========="
+          cat generated_test/tests/web/checkout-e2e.spec.ts || echo "(not found)"
 
       # # Upload sebagai artifact untuk dipakai job run-tests
       # - name: Upload generated tests
