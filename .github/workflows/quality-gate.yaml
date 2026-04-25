@@ -261,6 +261,7 @@ jobs:
         run: |
           npm install
           npx playwright install
+          npm install dotenv
           
       - name: Generate .env
         working-directory: playwright_template
