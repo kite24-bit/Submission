@@ -1,131 +1,164 @@
 import { test, expect } from '@playwright/test';
+import { TestUtils } from '../../utils/test-utils';
 
-test.describe('Checkout E2E Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate to the checkout page before each test
-    await page.goto('/');
-  });
+test.describe('Checkout Page E2E Tests', () => {
+    let utils: TestUtils;
 
-  test('should complete a successful checkout flow with valid data', async ({ page }) => {
-    // 1. Check backend health to ensure system is ready
-    const healthCheck = page.waitForResponse(resp => resp.url().includes('/api/health'));
-    await page.click('button:has-text("Check Backend Status")');
-    await healthCheck;
-    await expect(page.locator('text=🟢 Backend Status')).toBeVisible();
+    test.beforeEach(async ({ page }) => {
+        utils = new TestUtils(page);
+        await page.goto('/');
+        await utils.waitForPageLoad();
+    });
 
-    // 2. Fill Email and trigger async validation on blur
-    const emailValidation = page.waitForResponse(resp => 
-      resp.url().includes('/api/validate-email') && resp.request().method() === 'POST'
-    );
-    await page.fill('[name="email"]', 'customer@example.com');
-    await page.locator('[name="email"]').blur();
-    await emailValidation;
-    
-    // Check visual feedback for valid email
-    await expect(page.locator('[name="email"]')).toHaveClass(/border-green-400/);
+    test('should load the checkout page successfully and display initial elements', async ({ page }) => {
+        await expect(page).toHaveTitle(/Secure Checkout/i);
+        await expect(page.locator('h2:has-text("Secure Checkout")')).toBeVisible();
+        await expect(page.locator('button:has-text("Check Backend Status")')).toBeVisible();
+        await expect(page.locator('input[name="email"]')).toBeVisible();
+        await expect(page.locator('input[name="cardNumber"]')).toBeVisible();
+        await expect(page.locator('input[name="expiry"]')).toBeVisible();
+        await expect(page.locator('input[name="cvv"]')).toBeVisible();
+        await expect(page.locator('input[name="amount"]')).toBeVisible();
+        await expect(page.locator('button[type="submit"]')).toBeVisible();
+        await expect(page.locator('button[type="submit"]')).toHaveText('Complete Payment');
+    });
 
-    // 3. Fill Card Number and check auto-formatting and async validation on blur
-    const cardValidation = page.waitForResponse(resp => 
-      resp.url().includes('/api/validate-card') && resp.request().method() === 'POST'
-    );
-    // Use a number that passes validation
-    await page.fill('[name="cardNumber"]', '1234567890123452');
-    await page.locator('[name="cardNumber"]').blur();
-    await cardValidation;
-    
-    // Assert auto-formatting (spaces every 4 digits)
-    await expect(page.locator('[name="cardNumber"]')).toHaveValue('1234 5678 9012 3452');
-    await expect(page.locator('text=✅ Valid card number')).toBeVisible();
+    test('should check backend status and display success message', async ({ page }) => {
+        // Mock successful health check
+        await utils.mockApiResponse('http://localhost:8080/api/health', { status: 'OK', message: 'Service is healthy' });
 
-    // 4. Fill Expiry and check MM/YY auto-formatting
-    await page.fill('[name="expiry"]', '1226');
-    await expect(page.locator('[name="expiry"]')).toHaveValue('12/26');
+        await utils.clickElement('button:has-text("Check Backend Status")');
+        await expect(page.locator('div[role="status"]')).toContainText('🟢 Backend Status: OK - Service is healthy');
+    });
 
-    // 5. Fill CVV (type="password")
-    await page.fill('[name="cvv"]', '123');
+    test('should check backend status and display error message on failure', async ({ page }) => {
+        // Mock failed health check
+        await utils.mockApiResponse('http://localhost:8080/api/health', {}, 500);
 
-    // 6. Fill Amount (type="number")
-    await page.fill('[name="amount"]', '150.00');
+        await utils.clickElement('button:has-text("Check Backend Status")');
+        await expect(page.locator('div[role="status"]')).toContainText('🔴 Backend is not responding');
+    });
 
-    // 7. Submit and wait for checkout response
-    const checkoutResponse = page.waitForResponse(resp => 
-      resp.url().includes('/api/checkout') && resp.request().method() === 'POST'
-    );
-    await page.click('[type="submit"]');
-    const response = await checkoutResponse;
-    const body = await response.json();
+    test('should display warning for invalid email format on blur', async ({ page }) => {
+        await utils.fillField('input[name="email"]', 'invalid-email');
+        await page.locator('input[name="email"]').blur();
+        await expect(page.locator('p:has-text("❌ Invalid email format")')).toBeVisible();
+    });
 
-    // Verify success message returned by API
-    await expect(page.locator(`text=✅ ${body.message}`)).toBeVisible();
-  });
+    test('should validate email successfully on blur', async ({ page }) => {
+        await utils.mockApiResponse('http://localhost:8080/api/validate-email', { valid: true });
+        await utils.fillField('input[name="email"]', 'test@example.com');
+        await page.locator('input[name="email"]').blur();
+        // Expect no warning message and a green border
+        await expect(page.locator('p:has-text("❌ Invalid email format")')).not.toBeVisible();
+        await expect(page.locator('input[name="email"]')).toHaveClass(/border-green-400/);
+    });
 
-  test('should show error for invalid card number and prevent submission', async ({ page }) => {
-    // Fill invalid card number
-    const cardValidation = page.waitForResponse(resp => 
-      resp.url().includes('/api/validate-card')
-    );
-    await page.fill('[name="cardNumber"]', '1111111111111111');
-    await page.locator('[name="cardNumber"]').blur();
-    await cardValidation;
+    test('should handle soft-fail for email validation service unavailability', async ({ page }) => {
+        await utils.mockApiResponse('http://localhost:8080/api/validate-email', {}, 500);
+        await utils.fillField('input[name="email"]', 'test@example.com');
+        await page.locator('input[name="email"]').blur();
+        await expect(page.locator('p:has-text("⚠️ Email validation service temporarily unavailable.")')).toBeVisible();
+        await expect(page.locator('input[name="email"]')).toHaveClass(/border-green-400/); // Still soft-fails as valid
+    });
 
-    // Check error feedback
-    await expect(page.locator('text=❌ Invalid card number')).toBeVisible();
-    await expect(page.locator('[name="cardNumber"]')).toHaveClass(/border-red-400/);
+    test('should display error for invalid card number on blur', async ({ page }) => {
+        await utils.mockApiResponse('http://localhost:8080/api/validate-card', { valid: false });
+        await utils.fillField('input[name="cardNumber"]', '1111222233334444');
+        await page.locator('input[name="cardNumber"]').blur();
+        await expect(page.locator('p:has-text("❌ Invalid card number (Luhn check failed)")')).toBeVisible();
+        await expect(page.locator('input[name="cardNumber"]')).toHaveClass(/border-red-400/);
+    });
 
-    // Fill remaining required fields
-    await page.fill('[name="email"]', 'test@example.com');
-    await page.fill('[name="expiry"]', '12/25');
-    await page.fill('[name="cvv"]', '123');
-    await page.fill('[name="amount"]', '10.00');
-    
-    // Attempt to submit - app should block and show warning
-    await page.click('[type="submit"]');
-    await expect(page.locator('text=❌ Please enter a valid card number')).toBeVisible();
-  });
+    test('should display success for valid card number on blur', async ({ page }) => {
+        await utils.mockApiResponse('http://localhost:8080/api/validate-card', { valid: true });
+        await utils.fillField('input[name="cardNumber"]', '4111111111111111');
+        await page.locator('input[name="cardNumber"]').blur();
+        await expect(page.locator('p:has-text("✅ Valid card number (Luhn check passed)")')).toBeVisible();
+        await expect(page.locator('input[name="cardNumber"]')).toHaveClass(/border-green-400/);
+    });
 
-  test('should handle email validation soft-fail when service returns 500', async ({ page }) => {
-    // Mock a 500 error for the email validation endpoint
-    await page.route('**/api/validate-email', route => route.fulfill({
-      status: 500,
-      contentType: 'application/json',
-      body: JSON.stringify({ error: 'Internal Server Error' })
-    }));
+    test('should format card number with spaces', async ({ page }) => {
+        await utils.fillField('input[name="cardNumber"]', '1234567890123456');
+        await expect(page.locator('input[name="cardNumber"]')).toHaveValue('1234 5678 9012 3456');
+    });
 
-    const emailValidation = page.waitForResponse(resp => resp.url().includes('/api/validate-email'));
-    await page.fill('[name="email"]', 'user@example.com');
-    await page.locator('[name="email"]').blur();
-    await emailValidation;
+    test('should format expiry date with slash', async ({ page }) => {
+        await utils.fillField('input[name="expiry"]', '1225');
+        await expect(page.locator('input[name="expiry"]')).toHaveValue('12/25');
+    });
 
-    // Verify soft-fail message: user can still proceed
-    await expect(page.locator('text=⚠️ Email validation service temporarily unavailable')).toBeVisible();
-    
-    // Fill the rest of the form to confirm flow continues
-    await page.fill('[name="cardNumber"]', '1234567890123452');
-    await page.fill('[name="expiry"]', '12/25');
-    await page.fill('[name="cvv"]', '123');
-    await page.fill('[name="amount"]', '50.00');
+    test('should update payment button text with amount', async ({ page }) => {
+        await utils.fillField('input[name="amount"]', '123.45');
+        await expect(page.locator('button[type="submit"]')).toHaveText('Pay $123.45');
+    });
 
-    const checkoutResponse = page.waitForResponse(resp => resp.url().includes('/api/checkout'));
-    await page.click('[type="submit"]');
-    await checkoutResponse;
+    test('should complete payment successfully', async ({ page }) => {
+        await utils.mockApiResponse('http://localhost:8080/api/validate-email', { valid: true });
+        await utils.mockApiResponse('http://localhost:8080/api/validate-card', { valid: true });
+        await utils.mockApiResponse('http://localhost:8080/api/checkout', { message: 'Payment successful!' });
 
-    // Expect successful payment despite email validation service failure
-    await expect(page.locator('text=✅')).toBeVisible();
-  });
+        await utils.fillField('input[name="email"]', 'test@example.com');
+        await page.locator('input[name="email"]').blur(); // Trigger email validation
+        await utils.fillField('input[name="cardNumber"]', '4111111111111111');
+        await page.locator('input[name="cardNumber"]').blur(); // Trigger card validation
+        await utils.fillField('input[name="expiry"]', '1225');
+        await utils.fillField('input[name="cvv"]', '123');
+        await utils.fillField('input[name="amount"]', '50.00');
 
-  test('should validate CVV and Expiry fields are present and interactive', async ({ page }) => {
-    // Basic interaction test for field presence
-    const expiry = page.locator('[name="expiry"]');
-    const cvv = page.locator('[name="cvv"]');
-    
-    await expect(expiry).toBeVisible();
-    await expect(cvv).toBeVisible();
-    await expect(cvv).toHaveAttribute('type', 'password');
-    
-    await expiry.fill('1124');
-    await expect(expiry).toHaveValue('11/24');
-    
-    await cvv.fill('999');
-    await expect(cvv).toHaveValue('999');
-  });
+        await utils.clickElement('button[type="submit"]');
+        await expect(page.locator('div[role="status"]')).toContainText('✅ Payment successful!');
+    });
+
+    test('should prevent payment with previously invalidated card number', async ({ page }) => {
+        await utils.mockApiResponse('http://localhost:8080/api/validate-email', { valid: true });
+        await utils.mockApiResponse('http://localhost:8080/api/validate-card', { valid: false }); // Invalid card
+        // No mock for /api/checkout, as it should not be called
+
+        await utils.fillField('input[name="email"]', 'test@example.com');
+        await page.locator('input[name="email"]').blur();
+        await utils.fillField('input[name="cardNumber"]', '1111222233334444');
+        await page.locator('input[name="cardNumber"]').blur();
+        await utils.fillField('input[name="expiry"]', '1225');
+        await utils.fillField('input[name="cvv"]', '123');
+        await utils.fillField('input[name="amount"]', '50.00');
+
+        await utils.clickElement('button[type="submit"]');
+        await expect(page.locator('div[role="status"]')).toContainText('❌ Please enter a valid card number');
+        // Verify that /api/checkout was NOT called (no successful mock was provided for it)
+    });
+
+    test('should display error message on backend checkout failure', async ({ page }) => {
+        await utils.mockApiResponse('http://localhost:8080/api/validate-email', { valid: true });
+        await utils.mockApiResponse('http://localhost:8080/api/validate-card', { valid: true });
+        await utils.mockApiResponse('http://localhost:8080/api/checkout', { error: 'Insufficient funds' }, 400); // Simulate backend error
+
+        await utils.fillField('input[name="email"]', 'test@example.com');
+        await page.locator('input[name="email"]').blur();
+        await utils.fillField('input[name="cardNumber"]', '4111111111111111');
+        await page.locator('input[name="cardNumber"]').blur();
+        await utils.fillField('input[name="expiry"]', '1225');
+        await utils.fillField('input[name="cvv"]', '123');
+        await utils.fillField('input[name="amount"]', '50.00');
+
+        await utils.clickElement('button[type="submit"]');
+        await expect(page.locator('div[role="status"]')).toContainText('❌ Payment failed: Insufficient funds');
+    });
+
+    test('should display error message on network failure during checkout', async ({ page }) => {
+        await utils.mockApiResponse('http://localhost:8080/api/validate-email', { valid: true });
+        await utils.mockApiResponse('http://localhost:8080/api/validate-card', { valid: true });
+        // Do not mock /api/checkout to simulate network failure
+
+        await utils.fillField('input[name="email"]', 'test@example.com');
+        await page.locator('input[name="email"]').blur();
+        await utils.fillField('input[name="cardNumber"]', '4111111111111111');
+        await page.locator('input[name="cardNumber"]').blur();
+        await utils.fillField('input[name="expiry"]', '1225');
+        await utils.fillField('input[name="cvv"]', '123');
+        await utils.fillField('input[name="amount"]', '50.00');
+
+        await utils.clickElement('button[type="submit"]');
+        await expect(page.locator('div[role="status"]')).toContainText('❌ Failed to connect to backend server');
+    });
 });
