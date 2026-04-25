@@ -263,6 +263,7 @@ jobs:
           npx playwright install
           
       - name: Generate .env
+        working-directory: playwright_template
         run: |
           cat <<EOF > .env
           
