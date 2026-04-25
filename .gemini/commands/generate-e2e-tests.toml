@@ -9,21 +9,21 @@ Run this single command to read all required files at once:
       playwright_template/playwright.config.ts \
       playwright_template/tests/web/example-web.spec.ts
 
-From these files:
-  - Derive ALL test scenarios from page.tsx (form fields, async behaviors, validation logic, success/error messages)
-  - Use TestUtils from test-utils.ts as your primary helper (fillField, waitForApiResponse, generateTestData, fillPaymentForm, etc.)
-  - Follow the structure and style from example-web.spec.ts
-  - baseURL is pre-configured in playwright.config.ts — use page.goto('/') only
+Before writing any test:
+  1. Analyze page.tsx thoroughly — understand every state, every async call,
+     every validation logic, every success and error condition
+  2. Map out which fields trigger async calls, when, and what each response does
+  3. Understand what blocks vs does not block the form submission
+  4. Note exact success/error message strings from the source code
+
+Then generate complete Playwright E2E tests covering all flows you found.
 
 Rules:
-  - Import TestUtils: import { TestUtils } from '../../utils/test-utils';
-  - Instantiate in each test: const utils = new TestUtils(page);
-  - Use utils.fillField() for all form inputs
-  - Use utils.waitForApiResponse() for all async blur and submit calls
+  - Import and use TestUtils from '../../utils/test-utils'
+  - Use utils.fillField() for inputs, utils.waitForApiResponse() for async calls
+  - Trigger blur correctly based on how the component works
   - Selector priority: [name="x"] → [type="submit"] → never CSS classes
-  - No test.skip() unless copied from example (remove those)
-  - No hardcoded URLs
-  - No markdown fences
+  - No test.skip(), no hardcoded URLs, no markdown fences
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
