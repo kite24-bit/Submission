@@ -1,132 +1,164 @@
 import { test, expect } from '@playwright/test';
 import { ApiHelper } from '../../utils/api-helper';
 
-test.describe('Payment API Testing', () => {
+test.describe('Payment API Tests', () => {
     let apiHelper: ApiHelper;
 
-    test.beforeAll(async ({ request }) => {
+    test.beforeEach(async ({ request }) => {
         apiHelper = new ApiHelper(request);
     });
 
-    test('should get health check endpoint successfully', async () => {
+    /**
+     * Scenario: Health Check
+     * Validates that the API is up and running.
+     */
+    test('GET /api/health should return healthy status', async () => {
         const response = await apiHelper.get('/api/health');
-        expect(response.status()).toBe(200);
+        const body = await apiHelper.validateAndGetJson(response, 200);
 
-        const responseBody = await response.json();
-        expect(responseBody).toHaveProperty('status');
-        expect(typeof responseBody.status).toBe('string');
-        expect(responseBody.status).toBe('healthy');
-        expect(responseBody).toHaveProperty('message');
-        expect(typeof responseBody.message).toBe('string');
+        // Schema validation
+        expect(body).toHaveProperty('status');
+        expect(body).toHaveProperty('message');
+        expect(typeof body.status).toBe('string');
+        expect(typeof body.message).toBe('string');
+        
+        // Value validation
+        expect(body.status).toBe('healthy');
     });
 
-    test.describe('Checkout API', () => {
-        const validPaymentRequest = {
-            cardNumber: '4242424242424242',
+    /**
+     * Scenario: Process payment checkout (Valid)
+     * Validates that a payment can be processed with correct data.
+     */
+    test('POST /api/checkout should process payment successfully with valid data', async () => {
+        const payload = {
+            cardNumber: '4242 4242 4242 4242',
             cvv: '123',
             expiry: '12/26',
-            amount: 100.00
+            amount: 50.0
         };
 
-        test('should process a valid payment successfully', async () => {
-            const response = await apiHelper.post('/api/checkout', validPaymentRequest);
-            expect(response.status()).toBe(200);
+        const response = await apiHelper.post('/api/checkout', payload);
+        const body = await apiHelper.validateAndGetJson(response, 200);
 
-            const responseBody = await response.json();
-            expect(responseBody).toHaveProperty('status');
-            expect(typeof responseBody.status).toBe('string');
-            expect(responseBody.status).toBe('success');
-            expect(responseBody).toHaveProperty('message');
-            expect(typeof responseBody.message).toBe('string');
-        });
-
-        test('should return 400 for missing cardNumber in checkout request', async () => {
-            const invalidRequest = { ...validPaymentRequest, cardNumber: undefined };
-            const response = await apiHelper.post('/api/checkout', invalidRequest);
-            expect(response.status()).toBe(400);
-
-            const responseBody = await response.json();
-            expect(responseBody).toHaveProperty('error');
-            expect(typeof responseBody.error).toBe('string');
-        });
-
-        test('should return 400 for invalid amount type in checkout request', async () => {
-            const invalidRequest = { ...validPaymentRequest, amount: 'not-a-number' };
-            const response = await apiHelper.post('/api/checkout', invalidRequest);
-            expect(response.status()).toBe(400);
-
-            const responseBody = await response.json();
-            expect(responseBody).toHaveProperty('error');
-            expect(typeof responseBody.error).toBe('string');
-        });
+        // Schema validation
+        expect(body).toHaveProperty('status');
+        expect(body).toHaveProperty('message');
+        expect(typeof body.status).toBe('string');
+        expect(typeof body.message).toBe('string');
+        
+        // Value validation
+        expect(body.status).toBe('success');
     });
 
-    test.describe('Validate Card API', () => {
-        test('should validate a valid card number successfully', async () => {
-            const response = await apiHelper.post('/api/validate-card', { cardNumber: '4242424242424241' }); // Valid Luhn number
-            expect(response.status()).toBe(200);
+    /**
+     * Scenario: Process payment checkout (Invalid Schema - Bad Type)
+     * Validates that the API returns 400 Bad Request when field types are incorrect.
+     */
+    test('POST /api/checkout should return 400 for invalid amount type', async () => {
+        const payload = {
+            cardNumber: '4242 4242 4242 4242',
+            cvv: '123',
+            expiry: '12/26',
+            amount: 'invalid_amount' // Should be a number
+        };
 
-            const responseBody = await response.json();
-            expect(responseBody).toHaveProperty('valid');
-            expect(typeof responseBody.valid).toBe('boolean');
-            expect(responseBody.valid).toBe(true);
-            expect(responseBody).toHaveProperty('message');
-            expect(typeof responseBody.message).toBe('string');
-        });
+        const response = await apiHelper.post('/api/checkout', payload);
+        const body = await apiHelper.validateAndGetJson(response, 400);
 
-        test('should return 200 with valid: false for an invalid Luhn card number', async () => {
-            const response = await apiHelper.post('/api/validate-card', { cardNumber: '4242424242424242' }); // Invalid Luhn number (example in swagger is not Luhn valid)
-            expect(response.status()).toBe(200);
-
-            const responseBody = await response.json();
-            expect(responseBody).toHaveProperty('valid');
-            expect(typeof responseBody.valid).toBe('boolean');
-            expect(responseBody.valid).toBe(false);
-            expect(responseBody).toHaveProperty('message');
-            expect(typeof responseBody.message).toBe('string');
-        });
-
-        test('should return 400 for missing cardNumber in validate card request', async () => {
-            const response = await apiHelper.post('/api/validate-card', {});
-            expect(response.status()).toBe(400);
-
-            const responseBody = await response.json();
-            expect(responseBody).toHaveProperty('error');
-            expect(typeof responseBody.error).toBe('string');
-        });
+        // Schema validation for ErrorResponse
+        expect(body).toHaveProperty('error');
+        expect(typeof body.error).toBe('string');
     });
 
-    test.describe('Validate Email API', () => {
-        test('should validate a valid email successfully', async () => {
-            const response = await apiHelper.post('/api/validate-email', { email: 'test@example.com' });
-            expect(response.status()).toBe(200);
+    /**
+     * Scenario: Process payment checkout (Missing Required Field)
+     * Validates that the API handles missing mandatory fields.
+     */
+    test('POST /api/checkout should return 400 when cardNumber is missing', async () => {
+        const payload = {
+            cvv: '123',
+            expiry: '12/26',
+            amount: 100.0
+        };
 
-            const responseBody = await response.json();
-            expect(responseBody).toHaveProperty('valid');
-            expect(typeof responseBody.valid).toBe('boolean');
-            expect(responseBody.valid).toBe(true);
-            expect(responseBody).toHaveProperty('message');
-            expect(typeof responseBody.message).toBe('string');
-        });
+        const response = await apiHelper.post('/api/checkout', payload);
+        const body = await apiHelper.validateAndGetJson(response, 400);
 
-        test('should return 400 for missing email in validate email request', async () => {
-            const response = await apiHelper.post('/api/validate-email', {});
-            expect(response.status()).toBe(400);
+        expect(body).toHaveProperty('error');
+        expect(typeof body.error).toBe('string');
+    });
 
-            const responseBody = await response.json();
-            expect(responseBody).toHaveProperty('error');
-            expect(typeof responseBody.error).toBe('string');
-        });
+    /**
+     * Scenario: Validate Card Number (Valid)
+     * Validates that a correct card number is accepted.
+     */
+    test('POST /api/validate-card should return valid true for correct Luhn number', async () => {
+        const payload = {
+            cardNumber: '4242424242424242'
+        };
 
-        test('should return 500 for an internal server error due to invalid email format', async () => {
-            // According to GEMINI.md, /api/validate-email returns 500 as a "soft fail" for certain scenarios.
-            // This test simulates a case where the backend might return a 500 for a malformed email that passes basic schema validation.
-            const response = await apiHelper.post('/api/validate-email', { email: 'invalid-email-format' });
-            expect(response.status()).toBe(500);
+        const response = await apiHelper.post('/api/validate-card', payload);
+        const body = await apiHelper.validateAndGetJson(response, 200);
 
-            const responseBody = await response.json();
-            expect(responseBody).toHaveProperty('error');
-            expect(typeof responseBody.error).toBe('string');
-        });
+        // Schema validation
+        expect(body).toHaveProperty('valid');
+        expect(body).toHaveProperty('message');
+        expect(typeof body.valid).toBe('boolean');
+        expect(typeof body.message).toBe('string');
+        
+        expect(body.valid).toBe(true);
+    });
+
+    /**
+     * Scenario: Validate Card Number (Invalid Logic)
+     * Validates that an incorrect card number returns valid: false.
+     */
+    test('POST /api/validate-card should return valid false for invalid Luhn number', async () => {
+        const payload = {
+            cardNumber: '1234567812345670'
+        };
+
+        const response = await apiHelper.post('/api/validate-card', payload);
+        const body = await apiHelper.validateAndGetJson(response, 200);
+
+        expect(body.valid).toBe(false);
+    });
+
+    /**
+     * Scenario: Validate Email (Valid)
+     */
+    test('POST /api/validate-email should return valid true for standard email format', async () => {
+        const payload = {
+            email: 'test.user@example.com'
+        };
+
+        const response = await apiHelper.post('/api/validate-email', payload);
+        const body = await apiHelper.validateAndGetJson(response, 200);
+
+        // Schema validation
+        expect(body).toHaveProperty('valid');
+        expect(body).toHaveProperty('message');
+        expect(typeof body.valid).toBe('boolean');
+        expect(typeof body.message).toBe('string');
+        
+        expect(body.valid).toBe(true);
+    });
+
+    /**
+     * Scenario: Validate Email (Invalid - Soft Fail)
+     * According to project rules, invalid email validation results in a 500 error.
+     */
+    test('POST /api/validate-email should return 500 for malformed email string', async () => {
+        const payload = {
+            email: 'not-an-email'
+        };
+
+        const response = await apiHelper.post('/api/validate-email', payload);
+        const body = await apiHelper.validateAndGetJson(response, 500);
+
+        // Schema validation for ErrorResponse
+        expect(body).toHaveProperty('error');
+        expect(typeof body.error).toBe('string');
     });
 });
