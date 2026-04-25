@@ -1,97 +1,77 @@
-import { test, expect, Page } from '@playwright/test';
-import { ApiHelper } from '../../playwright_template/utils/api-helper';
-import { environment } from '../../playwright_template/config/environment';
-
-// Helper function to fill out the checkout form
-async function fillCheckoutForm(page: Page, cardNumber: string, expiry: string, cvv: string, amount: string) {
-    await page.locator('[name="cardNumber"]').fill(cardNumber);
-    await page.locator('[name="expiry"]').fill(expiry);
-    await page.locator('[name="cvv"]').fill(cvv);
-    await page.locator('[name="amount"]').fill(amount);
-}
-
-// Mock API responses for network failure scenarios
-async function mockApiResponses(page: Page) {
-    await page.route('**/api/validate-card', async route => {
-        await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ valid: false, message: 'Internal Server Error' }) });
-    });
-    await page.route('**/api/validate-email', async route => {
-        await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ valid: false, message: 'Internal Server Error' }) });
-    });
-    await page.route('**/api/checkout', async route => {
-        await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ status: 'failed', message: 'Internal Server Error' }) });
-    });
-}
+import { test, expect } from '@playwright/test';
 
 test.describe('Checkout Flow E2E Tests', () => {
-    let apiHelper: ApiHelper;
-
-    test.beforeEach(async ({ page, request }) => {
-        apiHelper = new ApiHelper(request);
-        await page.goto('/'); // Assuming '/' maps to the checkout page
+    test.beforeEach(async ({ page }) => {
+        await page.goto('/');
+        await expect(page.locator('h2:has-text("Secure Checkout")')).toBeVisible();
     });
 
-    // Happy Path: Successful checkout
-    test('should successfully complete checkout with valid details', async ({ page }) => {
-        await fillCheckoutForm(page, '1234 5678 1234 5678', '12/25', '123', '100.00');
+    test('should successfully complete a checkout with valid details (Happy Path)', async ({ page }) => {
+        // Fill email and wait for validation
+        await page.locator('[name="email"]').fill('test@example.com');
+        await page.locator('[name="email"]').blur();
+        await page.waitForResponse(response => response.url().includes('/api/validate-email') && response.status() === 200);
+        await expect(page.locator('p:has-text("Invalid email format")')).not.toBeVisible();
 
-        // Wait for card validation and then submit
-        await page.locator('[name="cardNumber"]').blur(); // Trigger blur for card validation
-        await page.waitForResponse('**/api/validate-card');
-
-        await page.locator('[name="email"]').blur(); // Trigger blur for email validation
-        await page.waitForResponse('**/api/validate-email');
-
-        // Ensure submit button is enabled and click it
-        await expect(page.locator('[type="submit"]')).toBeEnabled();
-        await page.click('[type="submit"]');
-
-        // Wait for checkout API call and verify success
-        await page.waitForResponse('**/api/checkout');
-        await expect(page).toHaveURL('/success'); // Assuming success page URL
-        await expect(page.locator('body')).toContainText('Checkout successful'); // Assuming a success message
-    });
-
-    // Critical Validation Error: Invalid card number
-    test('should show validation error for invalid card number', async ({ page }) => {
-        await fillCheckoutForm(page, 'invalid-card-number', '12/25', '123', '100.00');
-
-        // Trigger blur and wait for validation response
+        // Fill card number and wait for validation
+        await page.locator('[name="cardNumber"]').fill('1234123412341234');
         await page.locator('[name="cardNumber"]').blur();
-        const response = await page.waitForResponse('**/api/validate-card');
-        const responseBody = await response.json();
+        await page.waitForResponse(response => response.url().includes('/api/validate-card') && response.status() === 200);
+        await expect(page.locator('p:has-text("Invalid card number")')).not.toBeVisible();
 
-        // Assert that the card is not valid
-        expect(responseBody.valid).toBe(false);
-        expect(responseBody.message).toBeDefined(); // Expect a message explaining the error
+        // Fill expiry, CVV, and amount
+        await page.locator('[name="expiry"]').fill('12/26');
+        await page.locator('[name="cvv"]').fill('123');
+        await page.locator('[name="amount"]').fill('100.00');
+
+        // Submit the form and wait for checkout API response
+        await expect(page.locator('[type="submit"]')).not.toBeDisabled();
+        await page.locator('[type="submit"]').click();
+        const checkoutResponse = await page.waitForResponse(response => response.url().includes('/api/checkout') && response.status() === 200);
+        const checkoutData = await checkoutResponse.json();
+
+        // Assert success message and schema
+        expect(page.locator('text=Payment failed')).not.toBeVisible();
+        await expect(page.locator('text="Payment successful"')).toBeVisible();
+        expect(checkoutData).toHaveProperty('status', 'success');
+        expect(checkoutData).toHaveProperty('message');
+        expect(typeof checkoutData.message).toBe('string');
+    });
+
+    test('should display error for invalid card number input (Critical Validation Error)', async ({ page }) => {
+        // Fill email with a valid one (to ensure card validation is the focus)
+        await page.locator('[name="email"]').fill('test@example.com');
+        await page.locator('[name="email"]').blur();
+        await page.waitForResponse(response => response.url().includes('/api/validate-email') && response.status() === 200);
+
+        // Fill an invalid card number and wait for validation
+        await page.locator('[name="cardNumber"]').fill('1111111111111111'); // Invalid Luhn
+        await page.locator('[name="cardNumber"]').blur();
+        await page.waitForResponse(response => response.url().includes('/api/validate-card') && response.status() === 200);
+
+        // Assert validation error message
+        await expect(page.locator('p:has-text("Invalid card number (Luhn check failed)")')).toBeVisible();
+        // Ensure submit button is disabled
         await expect(page.locator('[type="submit"]')).toBeDisabled();
     });
 
-    // Network Failure Scenario: API returns 500 during checkout
-    test('should handle network failure during checkout', async ({ page }) => {
-        // Mock API to return 500 for all relevant endpoints
-        await mockApiResponses(page);
+    test('should handle network failure during email validation (Network Failure Scenario)', async ({ page }) => {
+        // Intercept email validation API and force a network error
+        await page.route('**/api/validate-email', route => {
+            route.abort('failed');
+        });
 
-        await fillCheckoutForm(page, '1234 5678 1234 5678', '12/25', '123', '100.00');
-
-        // Trigger blur events to initiate API calls
-        await page.locator('[name="cardNumber"]').blur();
-        await page.waitForResponse('**/api/validate-card'); // Wait for the mocked response
-
+        // Fill email and trigger blur
+        await page.locator('[name="email"]').fill('networkfail@example.com');
         await page.locator('[name="email"]').blur();
-        await page.waitForResponse('**/api/validate-email'); // Wait for the mocked response
 
-        // Attempt to submit, expecting the button to be enabled if validations pass (even if mocked)
-        // In a real scenario, if validation failed due to 500, submit would be disabled.
-        // Here, we assume mocks allow the submit to be enabled to test the checkout API failure.
-        await expect(page.locator('[type="submit"]')).toBeEnabled();
-        await page.click('[type="submit"]');
+        // Wait for the route abort to register
+        await page.waitForTimeout(500); // Small timeout to allow the abort to be processed
 
-        // Wait for the checkout API call and verify error handling
-        const checkoutResponse = await page.waitForResponse('**/api/checkout');
-        expect(checkoutResponse.status()).toBe(500);
-
-        // Assert that an error message is displayed
-        await expect(page.locator('body')).toContainText('Checkout failed'); // Assuming a failure message
+        // Assert soft-fail warning message
+        await expect(page.locator('p:has-text("Email validation service temporarily unavailable")')).toBeVisible();
+        await expect(page.locator('p:has-text("Could not validate email")')).toBeVisible();
+        // The submit button should not be disabled due to email soft fail
+        await expect(page.locator('[type="submit"]')).not.toBeDisabled();
     });
 });
