@@ -10,58 +10,66 @@ test.describe('Checkout E2E Tests', () => {
   });
 
   test('Happy path — fill all fields and submit, assert success', async ({ page }) => {
-    // Fill all fields with valid data
-    await utils.fillField('input[name="email"]', 'customer@example.com');
-    // Using formatted value to satisfy TestUtils.fillField's internal value assertion
+    await utils.fillField('input[name="email"]', 'test@example.com');
+    
+    // Using a standard valid test card number (Visa)
     await utils.fillField('input[name="cardNumber"]', '4111 1111 1111 1111');
-    await utils.fillField('input[name="expiry"]', '12/28');
+    await page.locator('input[name="cardNumber"]').blur();
+    
+    await utils.fillField('input[name="expiry"]', '12/25');
     await utils.fillField('input[name="cvv"]', '123');
-    await utils.fillField('input[name="amount"]', '150.00');
+    await utils.fillField('input[name="amount"]', '100.00');
 
-    // Submit the form
-    await utils.clickElement('button[type="submit"]');
+    await page.click('button[type="submit"]');
 
-    // Assert success message is displayed (contains ✅ from page.tsx)
-    const successMessage = page.locator('div:has-text("✅")');
+    const successMessage = page.locator('div', { hasText: '✅' });
     await expect(successMessage).toBeVisible({ timeout: 10000 });
   });
 
-  test('Negative test 1 — derived from page.tsx: card Luhn validation failure', async ({ page }) => {
-    // Fill email
+  test('Negative test 1 — blocking card validation failure', async ({ page }) => {
     await utils.fillField('input[name="email"]', 'test@example.com');
     
-    // Fill invalid card number (fails Luhn check)
-    await utils.fillField('input[name="cardNumber"]', '1234 5678 1234 5678');
-    
-    // Trigger blur to initiate async card validation
+    // Fill an intentionally invalid card number to trigger Luhn failure
+    await utils.fillField('input[name="cardNumber"]', '4111 1111 1111 1112');
     await page.locator('input[name="cardNumber"]').blur();
-    
-    // Assert the specific validation error message from handleCardBlur in page.tsx
-    await expect(page.locator('text=❌ Invalid card number (Luhn check failed)')).toBeVisible();
-    
-    // Fill remaining fields
-    await utils.fillField('input[name="expiry"]', '12/28');
+
+    // Verify blocking validation message appears on blur
+    const validationMessage = page.locator('text=❌ Invalid card number (Luhn check failed)');
+    await expect(validationMessage).toBeVisible();
+
+    await utils.fillField('input[name="expiry"]', '12/25');
     await utils.fillField('input[name="cvv"]', '123');
     await utils.fillField('input[name="amount"]', '50.00');
 
-    // Attempt to submit
-    await utils.clickElement('button[type="submit"]');
+    await page.click('button[type="submit"]');
 
-    // Assert submission is blocked by client-side cardValid check
-    await expect(page.locator('text=❌ Please enter a valid card number')).toBeVisible();
+    // Assert the submission-time blocking error message
+    const submitErrorMessage = page.locator('text=❌ Please enter a valid card number');
+    await expect(submitErrorMessage).toBeVisible();
   });
 
-  test('Negative test 2 — derived from page.tsx: invalid email format', async ({ page }) => {
-    // Fill email with invalid format
-    await utils.fillField('input[name="email"]', 'not-a-valid-email');
+  test('Negative test 2 — payment failure from backend', async ({ page }) => {
+    // Mock the checkout API to return a failure
+    await page.route('**/api/checkout', async (route) => {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Insufficient funds' }),
+      });
+    });
+
+    await utils.fillField('input[name="email"]', 'failure@example.com');
+    await utils.fillField('input[name="cardNumber"]', '4111 1111 1111 1111');
+    await page.locator('input[name="cardNumber"]').blur();
     
-    // Trigger blur to initiate async email validation
-    await page.locator('input[name="email"]').blur();
-    
-    // Assert the specific validation warning from handleEmailBlur in page.tsx
-    await expect(page.locator('text=❌ Invalid email format')).toBeVisible();
-    
-    // Assert visual feedback: border-red-400 class is applied when emailValid is false
-    await expect(page.locator('input[name="email"]')).toHaveClass(/border-red-400/);
+    await utils.fillField('input[name="expiry"]', '12/25');
+    await utils.fillField('input[name="cvv"]', '123');
+    await utils.fillField('input[name="amount"]', '9999.99');
+
+    await page.click('button[type="submit"]');
+
+    // Assert the payment failure message from page.tsx logic
+    const failureMessage = page.locator('text=❌ Payment failed: Insufficient funds');
+    await expect(failureMessage).toBeVisible();
   });
 });
