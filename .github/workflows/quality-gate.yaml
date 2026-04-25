@@ -91,7 +91,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          gemini_model: models/gemini-2.5-flash-lite
+          # gemini_model: models/gemini-2.5-flash-lite
           prompt: '/generate-api-tests'
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
@@ -105,7 +105,7 @@ jobs:
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
           prompt: '/generate-e2e-tests'
-          gemini_model: models/gemini-2.5-flash-lite
+          # gemini_model: models/gemini-2.5-flash-lite
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
           
@@ -227,10 +227,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # cache: npm
-          # cache-dependency-path: |
-          #   application_code/package-lock.json
-          #   generated_test/package-lock.json
 
       # ── Build + Start Next.js ────────────────────────────────────────────
       - name: Start Next.js frontend (:3000)
