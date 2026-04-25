@@ -8,19 +8,27 @@ Run this single command to read all required files at once:
       playwright_template/utils/test-utils.ts
 
 Generate exactly 3 Playwright E2E tests in TypeScript:
-  1. Happy path — fill all fields and submit, assert success
-  2. Negative test 1 — derived from page.tsx
-  3. Negative test 2 — derived from page.tsx
+  1. Happy path — fill all fields and submit, assert only the final success state. Skip per-field validation checks.
+  2. Negative test 1 — derived from page.tsx, assert specific UI feedback per field
+  3. Negative test 2 — derived from page.tsx, assert specific UI feedback per field
 
 Use TestUtils from test-utils.ts as your primary helper.
+
+Assertion rules when healing:
+  Happy path  → if selector is ambiguous, use a more specific one. Never skip the success assertion.
+  Negative    → NEVER change: existence of UI elements, blocking vs non-blocking behavior (source of truth: page.tsx)
+                OK to fix: exact wording of messages (use partial match if needed)
+                If UI element missing entirely — app bug, not test bug. Keep the assertion.
+                Soft-fail behavior (e.g. API returns 500 but form is NOT blocked) is intentional — never change this assertion.
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
   import { TestUtils } from '../../utils/test-utils';
 
-Write to playwright_template/tests/web/checkout-e2e.spec.ts then run:
+Write to: playwright_template/tests/web/checkout-e2e.spec.ts
+
+Then run once:
   cd playwright_template && npx playwright test tests/web/checkout-e2e.spec.ts --project=chromium
 
-If any test fails, fix and rerun until all pass, then copy the final file:
-  cp playwright_template/tests/web/checkout-e2e.spec.ts generated_tests/web/checkout-e2e.spec.ts
+If it fails, read the error, fix only the toleratable parts, and stop.
 """
