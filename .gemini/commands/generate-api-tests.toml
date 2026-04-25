@@ -2,20 +2,19 @@ description = "Generates Playwright API tests from the Swagger specification"
 
 prompt = """
 <CONTEXT>
-You are a senior playwright Automation tester
-Read ONLY:
-- application_code/docs/swagger.json (prefer json if exists)
-- playwright_template/playwright.config.ts
+Read and complete your task based on these document:
+- cat application_code/docs/swagger.json (prefer json if exists)
+- cat playwright_template/playwright.config.ts
 
-- playwright_template/utils/api-helper.ts
+- cat playwright_template/utils/api-helper.ts
 Also read GEMINI.md for project context, rules, and file paths.
 And make sure the script is able to run successfully.
 </CONTEXT>
 
 <TASK>
 Generate a complete, production-quality Playwright API test file in TypeScript.
-Cover all schema-based scenarios use swagger.json as a reference
-  Start the file with:
+Cover all schema-based scenarios in swagger.json
+Start the file with:
     import { test, expect } from '@playwright/test';
     import { ApiHelper } from '../../utils/api-helper';
 </TASK>
