@@ -13,6 +13,7 @@ playwright_template/utils/
 Also read GEMINI.md for project context, selector rules, and file paths.
   
 DO NOT read all files blindly.
+And make sure the script is able to run successfully.
 </CONTEXT>
 
 <TASK>
