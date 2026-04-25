@@ -5,18 +5,12 @@ You are a senior Playwright automation tester.
 
 Run this single command to read all required files at once:
   cat application_code/docs/swagger.json \
-      playwright_template/utils/api-helper.ts \
-      playwright_template/tests/api/example-api.spec.ts
+      playwright_template/utils/api-helper.ts
 
-In a SINGLE response, generate a complete Playwright API test file in TypeScript.
-
-Follow the style and structure of example-api.spec.ts.
-Cover all endpoints from swagger.json.
-For each endpoint: assert the response status code from swagger, then validate response body field types only (typeof checks) — never assert exact string values.
-
-Rules:
-  - NEVER use absolute URLs — relative paths only
-  - No test.skip(), no markdown fences
+In a SINGLE response, generate a schema-based complete Playwright API test file in TypeScript.
+Cover all endpoints and schemas from swagger.json.
+Assert status codes from swagger responses.
+Assert typeof for every field in the response schema definitions.
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
