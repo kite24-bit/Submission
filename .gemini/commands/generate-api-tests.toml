@@ -5,7 +5,7 @@ prompt = """
 Read ONLY:
 - application_code/docs/swagger.yaml OR swagger.json (prefer json if exists)
 - playwright_template/playwright.config.ts
-- playwright_template/tests/api/example-api.spec.ts (for import reference)
+
 - playwright_template/utils/api-helper.ts
 Also read GEMINI.md for project context, rules, and file paths.
 And make sure the script is able to run successfully.
@@ -17,7 +17,7 @@ Cover all schema-based scenarios:
 - valid request
 - invalid request (schema violation)
 - enum and required field validation
-
+ Import and use ApiHelper from '../../utils/api-helper'.
 </TASK>
 
 <OUTPUT_RULES>
