@@ -94,7 +94,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          gemini_model: models/gemini-2.5-flash-lite
+          gemini_model: models/gemini-3.1-flash-lite
           prompt: '/generate-api-tests'
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
@@ -108,7 +108,7 @@ jobs:
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           prompt: '/generate-e2e-tests'
-          gemini_model: models/gemini-2.5-flash-lite
+          gemini_model: models/gemini-3.1-flash-lite
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
           
