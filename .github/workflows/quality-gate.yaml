@@ -91,7 +91,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          gemini_model: models/gemini-2.5-flash
+          # gemini_model: models/gemini-2.5-flash
           prompt: '/generate-api-tests'
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
@@ -105,7 +105,7 @@ jobs:
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
           prompt: '/generate-e2e-tests'
-          gemini_model: models/gemini-2.5-flash
+          # gemini_model: models/gemini-2.5-flash
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
           
@@ -263,17 +263,17 @@ jobs:
           npx playwright install
 
 
-
-      # ── Run E2E Tests ────────────────────────────────────────────────────
-      - name: 🧪 Run E2E Tests
-        working-directory: playwright_template
-        run: |
-          npm run test:web
       # ── Run API Tests ────────────────────────────────────────────────────
       - name: 🧪 Run API Tests
         working-directory: playwright_template
         run: |
           npm run test:api
+      # ── Run E2E Tests ────────────────────────────────────────────────────
+      - name: 🧪 Run E2E Tests
+        working-directory: playwright_template
+        run: |
+          npm run test:web
+
       # ── Upload artifacts (selalu, termasuk saat gagal) ───────────────────
       - name: Upload Playwright HTML report
         if: always()
