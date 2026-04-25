@@ -7,7 +7,7 @@ Run this single command to read all required files at once:
   cat application_code/docs/swagger.json \
       playwright_template/utils/api-helper.ts
 
-In a SINGLE response, generate a schema-based complete Playwright API test file in TypeScript.
+Generate a complete Playwright API test file in TypeScript.
 Cover all endpoints and schemas from swagger.json.
 Assert status codes from swagger responses.
 Assert typeof for every field in the response schema definitions.
@@ -16,6 +16,9 @@ Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
   import { ApiHelper } from '../../utils/api-helper';
 
-Run first: mkdir -p generated_tests/api
-Write to:  generated_tests/api/payment-api.spec.ts
+Write to playwright_template/tests/api/payment-api.spec.ts then run:
+  cd playwright_template && npx playwright test tests/api/payment-api.spec.ts --project=api-tests
+
+If any test fails, fix and rerun until all pass, then copy the final file:
+  cp playwright_template/tests/api/payment-api.spec.ts generated_tests/api/payment-api.spec.ts
 """
