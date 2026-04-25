@@ -7,14 +7,9 @@ Read ONLY necessary files:
 - application_code/app/page.tsx
 - playwright_template/playwright.config.ts
 - playwright_template/tests/web/example-web.spec.ts (for import reference)
-
-If needed, read ONLY relevant helper file from:
-playwright_template/utils/
-
-Also read GEMINI.md for project context, selector rules, and file paths.
-  
-DO NOT read all files blindly.
+- playwright_template/utils/test-utils.ts
 And make sure the script is able to run successfully.
+Also read GEMINI.md for project context, selector rules, and file paths.
 </CONTEXT>
 
 <TASK>
