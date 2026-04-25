@@ -3,16 +3,11 @@ description = "Generates Playwright API tests from the Swagger specification"
 prompt = """
 <CONTEXT>
 Read ONLY:
-
 - application_code/docs/swagger.yaml OR swagger.json (prefer json if exists)
 - playwright_template/playwright.config.ts
 - playwright_template/tests/api/example-api.spec.ts (for import reference)
-
-If needed, read ONLY relevant helper from:
-playwright_template/utils/
-
+- playwright_template/utils/api-helper.ts
 Also read GEMINI.md for project context, rules, and file paths.
-Do NOT read all files.
 And make sure the script is able to run successfully.
 </CONTEXT>
 
