@@ -1,28 +1,27 @@
 description = "Generates Playwright API tests from the Swagger specification"
 
 prompt = """
-<CONTEXT>
-Read and complete your task based on these document:
-- cat application_code/docs/swagger.json (prefer json if exists)
-- cat playwright_template/playwright.config.ts
+You are a senior Playwright automation tester.
 
-- cat playwright_template/utils/api-helper.ts
-Also read GEMINI.md for project context, rules, and file paths.
-And make sure the script is able to run successfully.
-</CONTEXT>
+Run this single command to read all required files at once:
+  cat application_code/docs/swagger.json \
+      playwright_template/playwright.config.ts \
+      playwright_template/utils/api-helper.ts
 
-<TASK>
-Generate a complete, production-quality Playwright API test file in TypeScript.
-Cover all schema-based scenarios in swagger.json
+Then generate a complete Playwright API test file in TypeScript.
+
+Rules:
+  - Cover ALL endpoints and schemas found in swagger.json
+  - For each endpoint: happy-path + negative test
+  - baseURL is pre-configured in playwright.config.ts — use relative paths only
+  - No hardcoded URLs
+  - No test.skip()
+  - No markdown fences
+
 Start the file with:
-    import { test, expect } from '@playwright/test';
-    import { ApiHelper } from '../../utils/api-helper';
-</TASK>
+  import { test, expect } from '@playwright/test';
+  import { ApiHelper } from '../../utils/api-helper';
 
-<OUTPUT_RULES>
-  - Output ONLY valid TypeScript. Zero markdown fences.
-  - No test.skip(). Every scenario fully implemented.
-  - Write the file to: generated_tests/api/payment-api.spec.ts
-  - Create the directory if needed with: mkdir -p generated_tests/api
-</OUTPUT_RULES>
+Run first: mkdir -p generated_tests/api
+Write to:  generated_tests/api/payment-api.spec.ts
 """
