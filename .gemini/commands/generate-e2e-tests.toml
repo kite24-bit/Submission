@@ -1,5 +1,3 @@
-description = "Generates Playwright E2E tests for the checkout frontend"
-
 prompt = """
 You are a senior Playwright automation tester.
 
@@ -9,19 +7,12 @@ Run this single command to read all required files at once:
       playwright_template/playwright.config.ts \
       playwright_template/tests/web/example-web.spec.ts
 
-Before writing any test:
-  1. Analyze page.tsx thoroughly — understand every state, every async call,
-     every validation logic, every success and error condition
-  2. Map out which fields trigger async calls, when, and what each response does
-  3. Understand what blocks vs does not block the form submission
-  4. Note exact success/error message strings from the source code
-
-Then generate complete Playwright E2E tests covering all flows you found.
+In a SINGLE response, generate complete Playwright E2E tests.
+Derive all scenarios, behaviors, and assertions directly from the source files.
 
 Rules:
   - Import and use TestUtils from '../../utils/test-utils'
   - Use utils.fillField() for inputs, utils.waitForApiResponse() for async calls
-  - Trigger blur correctly based on how the component works
   - Selector priority: [name="x"] → [type="submit"] → never CSS classes
   - No test.skip(), no hardcoded URLs, no markdown fences
 
