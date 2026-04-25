@@ -61,7 +61,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .llm_cache
-          key: llm-cache-${{ hashFiles('application_code/app/*.tsx', 'application_code/docs/*.json') }}
+          key: llm-cache-${{ hashFiles(
+               'application_code/app/**/*.tsx',
+               'application_code/docs/**/*.{json,yaml}',
+               '.gemini/commands/*.toml',
+               'GEMINI.md'
+             ) }}
 
       # 4. Decide mode (SUPER SIMPLE)
       - name: Decide
@@ -305,17 +310,17 @@ jobs:
             const body = `## ${icon} AI Quality Gate Report`;
             console.log(body);
 
-      - name: Auto approve PR
-        if: success()
-        uses: hmarr/auto-approve-action@v4
-        with:
-          github-token: ${{ secrets.CHECKOUT_TOKEN }}
+      # - name: Auto approve PR
+      #   if: success()
+      #   uses: hmarr/auto-approve-action@v4
+      #   with:
+      #     github-token: ${{ secrets.CHECKOUT_TOKEN }}
 
-      - name: Request changes
-        if: failure()
-        run: |
-          gh pr review ${{ github.event.pull_request.number }} \
-            --request-changes \
-            --body "❌ Tests failed"
-        env:
-          GH_TOKEN: ${{ github.token }}
+      # - name: Request changes
+      #   if: failure()
+      #   run: |
+      #     gh pr review ${{ github.event.pull_request.number }} \
+      #       --request-changes \
+      #       --body "❌ Tests failed"
+      #   env:
+      #     GH_TOKEN: ${{ github.token }}
