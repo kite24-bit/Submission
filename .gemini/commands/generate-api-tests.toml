@@ -11,9 +11,8 @@ Run this single command to read all required files at once:
 In a SINGLE response, generate a complete Playwright API test file in TypeScript.
 
 Follow the style and structure of example-api.spec.ts.
-Cover all endpoints and schemas from swagger.json.
-Use typeof checks for all response fields based on swagger type definitions.
-Handle endpoints that have multiple response status codes in swagger accordingly.
+Cover all endpoints from swagger.json.
+For each endpoint: assert the response status code from swagger, then validate response body field types only (typeof checks) — never assert exact string values.
 
 Rules:
   - NEVER use absolute URLs — relative paths only
