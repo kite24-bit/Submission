@@ -42,9 +42,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-          
-      # - name: Checkout repo
-      #   uses: actions/checkout@v4
+
       # 2. Detect FORCE command
       - name: Detect force regenerate
         id: force
@@ -88,7 +86,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          gemini_model: models/gemini-2.5-flash-lite
+          gemini_model: models/gemini-2.5-flash
           prompt: '/generate-api-tests'
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
@@ -102,7 +100,7 @@ jobs:
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
           prompt: '/generate-e2e-tests'
-          gemini_model: models/gemini-2.5-flash-lite
+          gemini_model: models/gemini-2.5-flash
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
           
@@ -131,8 +129,8 @@ jobs:
       # Cegah hallucination masuk ke test execution
       - name: ✅ Validate generated files
         run: |
-          API_FILE="generated_test/tests/api/payment-api.spec.ts"
-          E2E_FILE="generated_test/tests/web/checkout-e2e.spec.ts"
+          API_FILE="generated_tests/api/payment-api.spec.ts"
+          E2E_FILE="generated_tests/web/checkout-e2e.spec.ts"
 
           for FILE in "$API_FILE" "$E2E_FILE"; do
             echo "--- Checking: $FILE ---"
@@ -158,10 +156,10 @@ jobs:
         if: always()
         run: |
           echo "========== payment-api.spec.ts =========="
-          cat generated_test/tests/api/payment-api.spec.ts || echo "(not found)"
+          cat generated_tests/api/payment-api.spec.ts || echo "(not found)"
           echo ""
           echo "========== checkout-e2e.spec.ts =========="
-          cat generated_test/tests/web/checkout-e2e.spec.ts || echo "(not found)"
+          cat generated_tests/web/checkout-e2e.spec.ts || echo "(not found)"
 
       # # Upload sebagai artifact untuk dipakai job run-tests
       # - name: Upload generated tests

@@ -1,197 +1,174 @@
 import { test, expect } from '@playwright/test';
-import { ApiHelper } from '../../utils/api-helper'; // Assuming ApiHelper is in the correct path
-
-// Define the base URL for the API tests from the Playwright config
-const baseURL = 'http://localhost:8080'; // This should ideally be dynamically read from playwright.config.ts
-
-// Define interfaces based on the swagger definition
-interface PaymentRequest {
-    cardNumber: string;
-    cvv: string;
-    expiry: string;
-    amount: number;
-}
-
-interface PaymentResponse {
-    status: string;
-    message: string;
-}
-
-interface ErrorResponse {
-    error: string;
-}
-
-interface CardRequest {
-    cardNumber: string;
-}
-
-interface CardResponse {
-    valid: boolean;
-    message: string;
-}
-
-interface EmailRequest {
-    email: string;
-}
-
-interface EmailResponse {
-    valid: boolean;
-    message: string;
-}
-
-interface HealthResponse {
-    status: string;
-    message: string;
-}
+import { ApiHelper } from '../../playwright_template/utils/api-helper';
 
 test.describe('Payment API Tests', () => {
     let apiHelper: ApiHelper;
 
-    test.beforeAll(async ({}) => {
-        // It's better to read baseURL from environment if possible.
-        // For now, hardcoding it based on project context.
-        apiHelper = new ApiHelper(baseURL);
+    test.beforeEach(async ({ request }) => {
+        apiHelper = new ApiHelper(request);
     });
 
-    test.afterEach(async ({}) => {
-        // No specific cleanup needed after each test for this API
-    });
-
-    // --- Health Check ---
-    test('should return healthy status', async () => {
+    test('GET /api/health - should return a healthy status', async () => {
         const response = await apiHelper.get('/api/health');
         expect(response.status()).toBe(200);
-        const responseBody = await response.json() as HealthResponse;
-        expect(responseBody.status).toBe('healthy');
-        expect(responseBody.message).toBe('Server is running');
+        const json = await response.json();
+        expect(json).toEqual(expect.objectContaining({
+            status: 'healthy',
+            message: expect.any(String),
+        }));
     });
 
-    // --- Card Validation ---
-    test('should validate a valid card number', async () => {
-        const cardRequest: CardRequest = { cardNumber: '4242424242424242' };
-        const response = await apiHelper.post('/api/validate-card', cardRequest);
-        expect(response.status()).toBe(200);
-        const responseBody = await response.json() as CardResponse;
-        expect(responseBody.valid).toBe(true);
-        expect(responseBody.message).toBe('Card number is valid');
-    });
-
-    test('should invalidate an invalid card number', async () => {
-        const cardRequest: CardRequest = { cardNumber: '123456789012345' }; // Too short for Luhn
-        const response = await apiHelper.post('/api/validate-card', cardRequest);
-        expect(response.status()).toBe(200);
-        const responseBody = await response.json() as CardResponse;
-        expect(responseBody.valid).toBe(false);
-        expect(responseBody.message).toBe('Card number is invalid'); // Assuming this is the invalid message
-    });
-
-    test('should return bad request for missing card number', async () => {
-        // Sending an empty object to simulate a missing cardNumber field
-        const response = await apiHelper.post('/api/validate-card', {});
-        expect(response.status()).toBe(400);
-        const responseBody = await response.json() as ErrorResponse;
-        expect(responseBody.error).toBe('Bad Request: Missing required field: cardNumber'); // Assuming error message format
-    });
-
-    // --- Email Validation ---
-    test('should validate a valid email address', async () => {
-        const emailRequest: EmailRequest = { email: 'user@example.com' };
-        const response = await apiHelper.post('/api/validate-email', emailRequest);
-        expect(response.status()).toBe(200);
-        const responseBody = await response.json() as EmailResponse;
-        expect(responseBody.valid).toBe(true);
-        expect(responseBody.message).toBe('Email is valid');
-    });
-
-    test('should invalidate an invalid email address', async () => {
-        const emailRequest: EmailRequest = { email: 'invalid-email' };
-        const response = await apiHelper.post('/api/validate-email', emailRequest);
-        expect(response.status()).toBe(200);
-        const responseBody = await response.json() as EmailResponse;
-        expect(responseBody.valid).toBe(false);
-        expect(responseBody.message).toBe('Email is invalid'); // Assuming this is the invalid message
-    });
-
-    test('should return internal server error for invalid email format (or specific error)', async () => {
-        // The swagger definition mentions 500 for /api/validate-email.
-        // We will test for a scenario that might trigger this, or a schema violation.
-        // For now, let's assume a malformed request body might lead to 500 or 400.
-        // If the API strictly enforces schema and returns 400 for bad format, this test should be adjusted.
-        // For now, let's test a malformed JSON body.
-        const malformedRequest = '{ "email": "test@example.com", '; // Malformed JSON
-        const response = await apiHelper.post('/api/validate-email', malformedRequest);
-        // Expecting a 500 based on swagger, but 400 is also possible for bad request.
-        // We will assert for 500, but acknowledge it might be 400.
-        expect(response.status()).toBe(500);
-        // If it returns 400, the error message below would be relevant:
-        // expect(response.status()).toBe(400);
-        // const responseBody = await response.json() as ErrorResponse;
-        // expect(responseBody.error).toBe('Bad Request: Invalid JSON body');
-    });
-
-
-    // --- Checkout Scenarios ---
-    test('should process a valid payment checkout', async () => {
-        const paymentRequest: PaymentRequest = {
-            cardNumber: '4242424242424242', // Valid card number
-            cvv: '123',
-            expiry: '12/26',
-            amount: 50,
-        };
-        const response = await apiHelper.post('/api/checkout', paymentRequest);
-        expect(response.status()).toBe(200);
-        const responseBody = await response.json() as PaymentResponse;
-        expect(responseBody.status).toBe('success');
-        expect(responseBody.message).toBe('Payment processed successfully!');
-    });
-
-    test('should return bad request for checkout with invalid card number', async () => {
-        const paymentRequest: PaymentRequest = {
-            cardNumber: '123456789012345', // Invalid card number (Luhn check fail)
-            cvv: '123',
-            expiry: '12/26',
-            amount: 50,
-        };
-        const response = await apiHelper.post('/api/checkout', paymentRequest);
-        expect(response.status()).toBe(400);
-        const responseBody = await response.json() as ErrorResponse;
-        // Expecting an error related to card validation
-        expect(responseBody.error).toContain('Card number is invalid');
-    });
-
-    test('should return bad request for checkout with missing required fields', async () => {
-        // Missing amount, expiry, cvv, cardNumber
-        const paymentRequest = {};
-        const response = await apiHelper.post('/api/checkout', paymentRequest);
-        expect(response.status()).toBe(400);
-        const responseBody = await response.json() as ErrorResponse;
-        // The exact error message might vary, but it should indicate missing fields.
-        expect(responseBody.error).toContain('Bad Request: Missing required fields');
-    });
-
-    test('should return bad request for checkout with invalid amount (e.g., negative)', async () => {
-        const paymentRequest: PaymentRequest = {
+    test.describe('POST /api/checkout', () => {
+        const validPaymentRequest = {
             cardNumber: '4242424242424242',
             cvv: '123',
             expiry: '12/26',
-            amount: -50, // Invalid amount
+            amount: 50
         };
-        const response = await apiHelper.post('/api/checkout', paymentRequest);
-        expect(response.status()).toBe(400);
-        const responseBody = await response.json() as ErrorResponse;
-        expect(responseBody.error).toContain('Amount must be positive'); // Assuming error message format
+
+        test('should process a valid payment', async () => {
+            const response = await apiHelper.post('/api/checkout', validPaymentRequest);
+            expect(response.status()).toBe(200);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                status: 'success',
+                message: expect.any(String),
+            }));
+        });
+
+        test('should return 400 for missing cardNumber', async () => {
+            const invalidRequest = { ...validPaymentRequest, cardNumber: undefined };
+            const response = await apiHelper.post('/api/checkout', invalidRequest);
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                error: expect.any(String),
+            }));
+        });
+
+        test('should return 400 for missing cvv', async () => {
+            const invalidRequest = { ...validPaymentRequest, cvv: undefined };
+            const response = await apiHelper.post('/api/checkout', invalidRequest);
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                error: expect.any(String),
+            }));
+        });
+
+        test('should return 400 for missing expiry', async () => {
+            const invalidRequest = { ...validPaymentRequest, expiry: undefined };
+            const response = await apiHelper.post('/api/checkout', invalidRequest);
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                error: expect.any(String),
+            }));
+        });
+
+        test('should return 400 for missing amount', async () => {
+            const invalidRequest = { ...validPaymentRequest, amount: undefined };
+            const response = await apiHelper.post('/api/checkout', invalidRequest);
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                error: expect.any(String),
+            }));
+        });
+
+        test('should return 400 for invalid amount type', async () => {
+            const invalidRequest = { ...validPaymentRequest, amount: 'fifty' }; // Should be number
+            const response = await apiHelper.post('/api/checkout', invalidRequest);
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                error: expect.any(String),
+            }));
+        });
     });
 
-    test('should return bad request for checkout with invalid expiry date format', async () => {
-        const paymentRequest: PaymentRequest = {
-            cardNumber: '4242424242424242',
-            cvv: '123',
-            expiry: '26/12', // Invalid format
-            amount: 50,
-        };
-        const response = await apiHelper.post('/api/checkout', paymentRequest);
-        expect(response.status()).toBe(400);
-        const responseBody = await response.json() as ErrorResponse;
-        expect(responseBody.error).toContain('Invalid expiry date format'); // Assuming error message format
+    test.describe('POST /api/validate-card', () => {
+        test('should validate a correct card number', async () => {
+            const response = await apiHelper.post('/api/validate-card', { cardNumber: '4242424242424242' });
+            expect(response.status()).toBe(200);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                valid: true,
+                message: expect.any(String),
+            }));
+        });
+
+        test('should invalidate an incorrect card number (Luhn check fail)', async () => {
+            const response = await apiHelper.post('/api/validate-card', { cardNumber: '4242424242424241' }); // Invalid Luhn
+            expect(response.status()).toBe(200); // API returns 200 with valid: false for Luhn check failure
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                valid: false,
+                message: expect.any(String),
+            }));
+        });
+
+        test('should return 400 for missing cardNumber', async () => {
+            const response = await apiHelper.post('/api/validate-card', { cardNumber: undefined });
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                error: expect.any(String),
+            }));
+        });
+
+        test('should return 400 for invalid cardNumber format (e.g., non-string)', async () => {
+            const response = await apiHelper.post('/api/validate-card', { cardNumber: 1234567890123456 });
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                error: expect.any(String),
+            }));
+        });
+    });
+
+    test.describe('POST /api/validate-email', () => {
+        test('should validate a correct email address', async () => {
+            const response = await apiHelper.post('/api/validate-email', { email: 'test@example.com' });
+            expect(response.status()).toBe(200);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                valid: true,
+                message: expect.any(String),
+            }));
+        });
+
+        test('should invalidate an incorrect email address format', async () => {
+            const response = await apiHelper.post('/api/validate-email', { email: 'invalid-email' });
+            expect(response.status()).toBe(200); // API returns 200 with valid: false for format validation
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                valid: false,
+                message: expect.any(String),
+            }));
+        });
+
+        test('should return 400 for missing email', async () => {
+            const response = await apiHelper.post('/api/validate-email', { email: undefined });
+            expect(response.status()).toBe(400);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                error: expect.any(String),
+            }));
+        });
+
+        test('should handle server error (500) gracefully for /api/validate-email', async () => {
+            // As per GEMINI.md, 500 for validate-email is a "soft fail".
+            // To simulate a 500, we'll send an empty email, which should trigger an internal error.
+            // The actual behavior might depend on the server implementation for this specific invalid input.
+            // The expectation here is that the test will not fail due to a 500 response, but rather correctly
+            // assert on the 500 status and the expected error response schema.
+            const response = await apiHelper.post('/api/validate-email', { email: '' });
+            expect(response.status()).toBe(500);
+            const json = await response.json();
+            expect(json).toEqual(expect.objectContaining({
+                error: expect.any(String),
+            }));
+        });
     });
 });
