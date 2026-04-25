@@ -1,3 +1,5 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
 /**
  * Environment Configuration
  * Configure different environments for your tests
