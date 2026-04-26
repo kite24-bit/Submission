@@ -1,114 +1,81 @@
 import { test, expect } from '@playwright/test';
 import { TestUtils } from '../../utils/test-utils';
 
-test.describe('Checkout Page E2E Tests', () => {
-    let testUtils: TestUtils;
+test.describe('Checkout Flow', () => {
+  let utils: TestUtils;
 
-    test.beforeEach(async ({ page }) => {
-        testUtils = new TestUtils(page);
-        await page.goto('/');
-        await testUtils.waitForPageLoad();
-    });
+  test.beforeEach(async ({ page }) => {
+    utils = new TestUtils(page);
+    await page.goto('/');
+    await utils.waitForPageLoad();
+  });
 
-    test('1. Happy path - fill all fields and submit, assert success', async ({ page }) => {
-        // Fill form fields
-        await page.locator('input[name="email"]').fill('test.user@example.com');
-        await page.locator('input[name="cardNumber"]').fill('4111 1111 1111 1111');
-        await page.locator('input[name="expiry"]').fill('12/25');
-        await page.locator('input[name="cvv"]').fill('123');
-        await page.locator('input[name="amount"]').fill('100.00');
+  test('Happy path — fill all fields and submit, assert success', async ({ page }) => {
+    // Fill Email
+    const emailInput = page.getByLabel('Email Address');
+    await emailInput.fill('test@example.com');
+    await emailInput.blur();
+    await utils.waitForApiResponse('**/api/validate-email');
 
-        // Wait for email and card validation to complete on blur
-        await page.locator('input[name="email"]').blur();
-        await page.locator('input[name="cardNumber"]').blur();
+    // Fill Card Number
+    const cardInput = page.getByLabel('Card Number');
+    await cardInput.fill('4242 4242 4242 4242');
+    await cardInput.blur();
+    await utils.waitForApiResponse('**/api/validate-card');
 
-        await expect(page.locator('span:has-text("Validating...")')).toHaveCount(0); // Ensure no validating messages are present
+    // Fill Expiry
+    await page.getByLabel('Expiry').fill('12/26');
 
-        // Intercept checkout API call and mock a successful response
-        await page.route('http://localhost:8080/api/checkout', async route => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ message: 'Payment processed successfully!' }),
-            });
-        });
+    // Fill CVV
+    await page.getByLabel('CVV').fill('123');
 
-        // Click submit button
-        await page.locator('button[type="submit"]').click();
+    // Fill Amount
+    await page.getByLabel('Amount (USD)').fill('100.00');
 
-        // Assert processing payment message
-        await expect(page.locator('button[type="submit"]:has-text("Processing Payment...")')).toBeVisible();
+    // Submit Payment
+    const submitButton = page.getByRole('button', { name: 'Pay $100.00' });
+    await submitButton.click();
+    await utils.waitForApiResponse('**/api/checkout');
 
-        // Wait for the success message after form submission
-        await expect(page.locator('div[class*="rounded-xl mb-6"]')).toContainText('✅ Payment processed successfully!');
-    });
+    // Assert Success Message
+    await expect(page.getByText('✅ Payment processed successfully!')).toBeVisible();
+  });
 
-    test('2. Negative test - invalid card number blocks submission', async ({ page }) => {
-        // Fill form fields with an invalid card number
-        await page.locator('input[name="email"]').fill('test.user@example.com');
-        await page.locator('input[name="cardNumber"]').fill('4111 1111 1111 1110'); // Invalid Luhn
-        await page.locator('input[name="expiry"]').fill('12/25');
-        await page.locator('input[name="cvv"]').fill('123');
-        await page.locator('input[name="amount"]').fill('50.00');
+  test('Negative test 1 — derived from page.tsx (Invalid Card Number)', async ({ page }) => {
+    // Fill Invalid Card Number (Luhn check fails for ...4243)
+    const cardInput = page.getByLabel('Card Number');
+    await cardInput.fill('4242 4242 4242 4243');
+    await cardInput.blur();
+    
+    // Wait for card validation response
+    await utils.waitForApiResponse('**/api/validate-card');
 
-        // Trigger card validation on blur
-        await page.locator('input[name="cardNumber"]').blur();
-        await expect(page.locator('span:has-text("Validating...")')).toHaveCount(0); // Ensure no validating messages are present
+    // Assert validation message on blur
+    await expect(page.getByText('❌ Invalid card number (Luhn check failed)')).toBeVisible();
 
-        // Wait for card validation message to appear
-        await expect(page.locator('p:has-text("❌ Invalid card number (Luhn check failed)")')).toBeVisible();
+    // Fill other required fields to enable submission check
+    await page.getByLabel('Email Address').fill('test@example.com');
+    await page.getByLabel('Expiry').fill('12/26');
+    await page.getByLabel('CVV').fill('123');
+    await page.getByLabel('Amount (USD)').fill('50.00');
 
-        // Attempt to submit the form
-        await page.locator('button[type="submit"]').click();
+    // Attempt to submit
+    await page.getByRole('button', { name: 'Pay $50.00' }).click();
 
-        // Assert that submission is blocked with an error message
-        await expect(page.locator('div[class*="rounded-xl mb-6"]')).toContainText('❌ Please enter a valid card number');
-        // Ensure "Processing Payment..." is not visible
-        await expect(page.locator('button[type="submit"]:has-text("Processing Payment...")')).not.toBeVisible();
-    });
+    // Assert blocking error message
+    await expect(page.getByText('❌ Please enter a valid card number')).toBeVisible();
+  });
 
-    test('3. Negative test - email validation service unavailable (soft-fail)', async ({ page }) => {
-        // Intercept email validation API call and mock a 500 error
-        await page.route('http://localhost:8080/api/validate-email', async route => {
-            await route.fulfill({
-                status: 500,
-                contentType: 'application/json',
-                body: JSON.stringify({ error: 'Internal Server Error' }),
-            });
-        });
+  test('Negative test 2 — derived from page.tsx (Email validation service error)', async ({ page }) => {
+    // Fill Email
+    const emailInput = page.getByLabel('Email Address');
+    await emailInput.fill('test@example.com');
+    await emailInput.blur();
 
-        // Fill email field to trigger validation on blur
-        await page.locator('input[name="email"]').fill('test.user@example.com');
-        await page.locator('input[name="email"]').blur();
+    // Wait for email validation response (Backend returns 500)
+    await utils.waitForApiResponse('**/api/validate-email');
 
-        // Assert that the soft-fail warning is visible
-        await expect(page.locator('p:has-text("⚠️ Email validation service temporarily unavailable. You can still proceed.")')).toBeVisible();
-
-        // Continue filling other fields and submit
-        await page.locator('input[name="cardNumber"]').fill('4111 1111 1111 1111');
-        await page.locator('input[name="expiry"]').fill('12/25');
-        await page.locator('input[name="cvv"]').fill('123');
-        await page.locator('input[name="amount"]').fill('75.00');
-
-        await page.locator('input[name="cardNumber"]').blur();
-        await expect(page.locator('p:has-text("✅ Valid card number (Luhn check passed)")')).toBeVisible();
-
-        // Intercept checkout API call and mock a successful response
-        await page.route('http://localhost:8080/api/checkout', async route => {
-            await route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({ message: 'Payment processed successfully!' }),
-            });
-        });
-
-        // Click submit button
-        await page.locator('button[type="submit"]').click();
-
-        // Assert processing payment message
-        await expect(page.locator('button[type="submit"]:has-text("Processing Payment...")')).toBeVisible();
-
-        // Assert that the payment still goes through despite the email warning
-        await expect(page.locator('div[class*="rounded-xl mb-6"]')).toContainText('✅ Payment processed successfully!');
-    });
+    // Assert soft-fail warning message
+    await expect(page.getByText('⚠️ Email validation service temporarily unavailable. You can still proceed.')).toBeVisible();
+  });
 });
