@@ -9,20 +9,12 @@ Run this single command to read all required files at once:
 
 Generate a complete Playwright API test file in TypeScript.
 Cover all endpoints and schemas from swagger.json.
-
-Assertion rules — strictly follow this:
-  NEVER change: status codes, field names existence, field types (these come from swagger — source of truth)
-  OK to tolerate: exact string values of messages (use typeof check, not exact string match)
+Assert status codes from swagger responses.
+Assert typeof for every field in the response schema definitions.
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
   import { ApiHelper } from '../../utils/api-helper';
 
 Write to: playwright_template/tests/api/payment-api.spec.ts
-
-Then run once:
-  cd playwright_template && npx playwright test tests/api/payment-api.spec.ts --project=api-tests
-
-If it fails, read the error, fix only the toleratable parts, and stop.
-If status code or field type is wrong — that means the app has a bug, not the test. Keep the assertion.
 """
