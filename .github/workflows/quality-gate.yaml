@@ -1,7 +1,7 @@
 name: 🤖 AI Quality Gate — Gemini CLI + Playwright
 
 on:
- 
+
   pull_request:
     # branches: [main, master]
       types: [opened, synchronize]
