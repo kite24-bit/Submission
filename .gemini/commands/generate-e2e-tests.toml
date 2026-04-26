@@ -23,4 +23,5 @@ Start the file with EXACTLY:
   import { TestUtils } from '../../utils/test-utils';
 
 Save the file to: generated_tests/web/checkout-e2e.spec.ts
+After writing the file, stop immediately. Do not run any commands.
 """
