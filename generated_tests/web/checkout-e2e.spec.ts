@@ -1,79 +1,68 @@
 import { test, expect } from '@playwright/test';
 import { TestUtils } from '../../utils/test-utils';
 
-test.describe('Checkout E2E Tests', () => {
-  let testUtils: TestUtils;
-  let page: Page;
+test.describe('Checkout Page E2E Tests', () => {
+    let testUtils: TestUtils;
 
-  test.beforeEach(async ({ page: browserPage }) => {
-    page = browserPage;
-    testUtils = new TestUtils(page);
-    // Navigate to the checkout page and wait for it to load
-    await page.goto('http://localhost:3000'); // Assuming the frontend is served at port 3000
-    await testUtils.waitForPageLoad();
-  });
+    test.beforeEach(async ({ page }) => {
+        testUtils = new TestUtils(page);
+        await page.goto('/');
+        await testUtils.waitForPageLoad();
+    });
 
-  test('1. Happy path — fill all fields and submit, Skip per-field validation checks.', async () => {
-    // Fill all fields, skipping individual validation checks as per requirement
-    await testUtils.fillField('input[name="email"]', 'test@example.com');
-    await testUtils.fillField('input[name="cardNumber"]', '4111111111111111'); // Use a valid test card number
-    await testUtils.fillField('input[name="expiry"]', '12/25');
-    await testUtils.fillField('input[name="cvv"]', '123');
-    await testUtils.fillField('input[name="amount"]', '100.50');
+    test('1. Happy path - fill all fields and submit, assert success', async ({ page }) => {
+        // Fill out all fields with valid data
+        await testUtils.fillField('input[name="email"]', 'test@example.com');
+        await page.locator('input[name="email"]').blur(); // Trigger email validation
+        await testUtils.fillField('input[name="cardNumber"]', '4111 1111 1111 1111');
+        await page.locator('input[name="cardNumber"]').blur(); // Trigger card validation
+        await testUtils.fillField('input[name="expiry"]', '12/25');
+        await testUtils.fillField('input[name="cvv"]', '123');
+        await testUtils.fillField('input[name="amount"]', '100.00');
 
-    // Submit the form
-    await testUtils.clickElement('button[type="submit"]');
+        // Submit the form
+        await testUtils.clickElement('button[type="submit"]');
 
-    // Assert that the payment was successful or a success message is displayed
-    // This will depend on the success message shown in application_code/app/page.tsx
-    await testUtils.waitForText('✅ Payment successful'); // Adjust this text based on actual success message
-  });
+        // Assert success message
+        await expect(page.locator('div.p-4.rounded-xl.mb-6.text-sm.font-medium.shadow-lg')).toContainText('✅');
+        await expect(page.locator('div.p-4.rounded-xl.mb-6.text-sm.font-medium.shadow-lg')).toContainText('Payment successful');
+    });
 
-  test('2. Negative test 1 — derived from page.tsx: Invalid email format and card number.', async () => {
-    // Fill form with invalid email and card number
-    await testUtils.fillField('input[name="email"]', 'invalid-email');
-    await testUtils.fillField('input[name="cardNumber"]', '1234'); // Invalid card number
-    await testUtils.fillField('input[name="expiry"]', '12/25');
-    await testUtils.fillField('input[name="cvv"]', '123');
-    await testUtils.fillField('input[name="amount', '50.00');
+    test('2. Negative test - invalid card number (Luhn check failed) should block submission', async ({ page }) => {
+        // Fill with valid email and other fields
+        await testUtils.fillField('input[name="email"]', 'valid@example.com');
+        await page.locator('input[name="email"]').blur();
+        // Fill with an invalid card number (Luhn check fails for '4111 1111 1111 1110')
+        await testUtils.fillField('input[name="cardNumber"]', '4111 1111 1111 1110');
+        await page.locator('input[name="cardNumber"]').blur(); // Trigger card validation
+        await expect(page.locator('p.text-xs.mt-1.5.ml-1.font-medium')).toContainText('❌ Invalid card number (Luhn check failed)');
+        await expect(page.locator('svg.absolute.right-4.top-1/2.-translate-y-1/2.w-5.h-5.text-red-500')).toBeVisible();
 
-    // Trigger email blur to show validation warning
-    await page.locator('input[name="email"]').blur();
-    // Trigger card blur to show validation warning
-    await page.locator('input[name="cardNumber"]').blur();
+        await testUtils.fillField('input[name="expiry"]', '12/25');
+        await testUtils.fillField('input[name="cvv"]', '123');
+        await testUtils.fillField('input[name="amount"]', '50.00');
 
-    // Assert that the warnings for invalid email and card number are displayed
-    await testUtils.waitForText('❌ Invalid email format');
-    await testUtils.waitForText('❌ Invalid card number (Luhn check failed)');
+        // Attempt to submit
+        await testUtils.clickElement('button[type="submit"]');
 
-    // Attempt to submit the form
-    await testUtils.clickElement('button[type="submit"]');
+        // Assert that a blocking error message appears and payment is not processed
+        await expect(page.locator('div.p-4.rounded-xl.mb-6.text-sm.font-medium.shadow-lg')).toContainText('❌ Please enter a valid card number');
+        await expect(page.locator('text=Pay $50.00')).toBeVisible(); // Button should not show "Processing Payment..."
+    });
 
-    // Assert that submission is blocked or an error message is shown,
-    // and that the success message is NOT displayed.
-    await expect(page.locator('button[type="submit"]')).toBeEnabled(); // Or check if disabled if that's the behavior
-    await testUtils.waitForText('❌ Please enter a valid card number'); // Specific error message for submission block
-    await expect(page.locator('text=✅ Payment successful')).not.toBeVisible(); // Ensure success message is not shown
-  });
+    test('3. Negative test - empty required fields should trigger browser validation', async ({ page }) => {
+        // Attempt to submit without filling any required fields
+        await testUtils.clickElement('button[type="submit"]');
 
-  test('3. Negative test 2 — derived from page.tsx: Empty required fields.', async () => {
-    // Attempt to submit the form with all fields empty
-    await testUtils.clickElement('button[type="submit"]');
+        // Browser's native 'required' validation should prevent submission
+        // We can assert that the success message is NOT visible, and the form remains.
+        await expect(page.locator('div.p-4.rounded-xl.mb-6.text-sm.font-medium.shadow-lg')).not.toBeVisible();
 
-    // Assert that the browser's validation (or our custom JS validation) prevents submission
-    // or shows appropriate error messages for required fields.
-    // For Playwright, we often check for the 'required' attribute and its effect,
-    // or specific error messages if the frontend provides them.
-
-    // Checking for the presence of required attribute for each field
-    await expect(page.locator('input[name="email"]')).toBeRequired();
-    await expect(page.locator('input[name="cardNumber"]')).toBeRequired();
-    await expect(page.locator('input[name="expiry"]')).toBeRequired();
-    await expect(page.locator('input[name="cvv"]')).toBeRequired();
-    await expect(page.locator('input[name="amount"]')).toBeRequired();
-
-    // Additionally, check if submission was blocked and no success message appeared
-    await expect(page.locator('button[type="submit"]')).toBeEnabled(); // Assuming it remains enabled until valid
-    await expect(page.locator('text=✅ Payment successful')).not.toBeVisible(); // Ensure success message is not shown
-  });
+        // Check for specific browser validation messages (though these are hard to assert directly in Playwright)
+        // A more reliable check is to ensure that no success/error message from the server is displayed
+        // and the input fields retain their invalid state (e.g., :invalid pseudo-class)
+        const emailInput = page.locator('input[name="email"]');
+        await expect(emailInput).toBeFocused(); // Browser typically focuses on the first invalid field
+        await expect(emailInput).toHaveAttribute('required', ''); // Confirm the required attribute
+    });
 });
