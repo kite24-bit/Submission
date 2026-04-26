@@ -22,5 +22,5 @@ Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
   import { TestUtils } from '../../utils/test-utils';
 
-Write to: playwright_template/tests/web/checkout-e2e.spec.ts
+Save the file to: generated_tests/web/checkout-e2e.spec.ts
 """
