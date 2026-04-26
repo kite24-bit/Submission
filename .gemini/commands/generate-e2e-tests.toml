@@ -5,23 +5,35 @@ You are a senior Playwright automation tester.
 
 Run this single command to read all required files at once:
   cat application_code/app/page.tsx \
-      playwright_template/utils/test-utils.ts
+      playwright_template/utils/test-utils.ts \
+      playwright_template/tests/web/example-web.spec.ts
 
-Generate exactly 3 Playwright E2E tests in TypeScript:
-  1. Happy path — fill all fields and submit, Skip per-field validation checks.
+Before generating, verify your understanding of page.tsx:
+  - What exact text string appears on success?
+  - Which validations are blocking vs non-blocking?
+  - What selectors are stable for assertions?
+
+Then in a SINGLE response, generate a complete Playwright E2E test file in TypeScript.
+
+Follow the style and structure of example-web.spec.ts.
+Use TestUtils from test-utils.ts as your primary helper.
+
+Generate exactly 3 tests:
+  1. Happy path — fill all fields and submit, assert success. Skip per-field validation checks.
   2. Negative test 1 — derived from page.tsx
   3. Negative test 2 — derived from page.tsx
 
-Use TestUtils from test-utils.ts as your primary helper.
-Only use Playwright semantic locators — never HTML tags (div, span, p, button, etc.) or CSS classes as selectors or assertions.
-All selectors and assertions must resolve to a unique element only.
-For async operations, always wait for network response before asserting UI changes.
-Soft-fail behaviors from page.tsx are intentional — assert them as-is.
+Rules:
+  - page.goto('/') only — NEVER absolute URLs
+  - Use exact text strings as they appear in page.tsx source code
+  - Only assert behaviors that are explicitly implemented in page.tsx
+  - All locators must resolve to exactly one unique element
+  - No test.skip(), no markdown fences
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
   import { TestUtils } from '../../utils/test-utils';
 
 Save the file to: generated_tests/web/checkout-e2e.spec.ts
-After writing the file, stop immediately. Do not run any commands.
+After writing, stop immediately.
 """
