@@ -9,7 +9,7 @@ Run this single command to read all required files at once:
 
 Generate a complete Playwright API test file in TypeScript.
 Cover all endpoints and schemas from swagger.json.
-Assert status codes from swagger responses.
+build a schema-aware assertions from swagger responses that validate response structure.
 Assert typeof for every field in the response schema definitions.
 
 Start the file with EXACTLY:
