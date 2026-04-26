@@ -33,6 +33,7 @@ Rules:
   - Only use Playwright semantic locators — never HTML tags (div, span, p, button, etc.) or CSS classes as selectors or assertions.
   - Use page.waitForResponse() for ALL async blur validations — no fixed timeouts
   - Soft-fail behaviors from page.tsx are intentional — assert them as-is.
+  - Never assert transient UI states (loading, processing) — only assert final states
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
