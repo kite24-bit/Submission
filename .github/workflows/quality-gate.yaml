@@ -7,11 +7,6 @@ on:
       types: [opened, synchronize]
   issue_comment:
     types: [created]  
-    
-  # push:
-  #   branches: [main, master]
-  #   paths-ignore:
-  #     - 'generated_test/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
