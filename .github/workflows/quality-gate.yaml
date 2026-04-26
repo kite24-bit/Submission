@@ -84,7 +84,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v0
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          gemini_model: models/gemini-2.5-flash
+          # gemini_model: models/gemini-2.5-flash
           prompt: '/generate-api-tests'
           # settings: '{"maxSessionTurns": 3}'
           gemini_debug: true
@@ -102,7 +102,7 @@ jobs:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
           prompt: '/generate-e2e-tests'
           # settings: '{"maxSessionTurns": 3}'
-          gemini_model: models/gemini-2.5-flash
+          # gemini_model: models/gemini-2.5-flash
           gemini_debug: true
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
