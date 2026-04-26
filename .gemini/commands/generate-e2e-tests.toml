@@ -13,8 +13,8 @@ Generate exactly 3 Playwright E2E tests in TypeScript:
   3. Negative test 2 — derived from page.tsx
 
 Use TestUtils from test-utils.ts as your primary helper.
-Selector priority: [name="x"] first, [type="submit"] for button, never CSS classes
-For text assertions use page.getByText() with exact string from page.tsx source code.
+Only use Playwright semantic locators for both selectors and assertions:
+getByText(), getByRole(), getByLabel(), [name="x"], [type="x"]
 Soft-fail behaviors from page.tsx are intentional — assert them as-is.
 
 Start the file with EXACTLY:
