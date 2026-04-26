@@ -12,9 +12,9 @@ Before generating, verify your understanding of page.tsx:
   - What exact text string appears on success?
   - Which validations are blocking vs non-blocking?
   - What selectors are stable for assertions?
+  - What attributes do the form inputs have? (name, id, placeholder, label?)
 
 Then in a SINGLE response, generate a complete Playwright E2E test file in TypeScript.
-
 Follow the style and structure of example-web.spec.ts.
 Use TestUtils from test-utils.ts as your primary helper.
 
@@ -27,13 +27,12 @@ Rules:
   - page.goto('/') only — NEVER absolute URLs
   - Use exact text strings as they appear in page.tsx source code
   - Only assert behaviors that are explicitly implemented in page.tsx
-  - All selectors and assertions must resolve to a unique element only and must resolve to be found.
-  - Make sure the element can be found.
-  - No test.skip(), no markdown fences
-  - Only use Playwright semantic locators — never HTML tags (div, span, p, button, etc.) or CSS classes as selectors or assertions.
-  - Use page.waitForResponse() for ALL async blur validations — no fixed timeouts
-  - Soft-fail behaviors from page.tsx are intentional — assert them as-is.
+  - All selectors and assertions must resolve to a unique element only and must resolve to be found
   - Never assert transient UI states (loading, processing) — only assert final states
+  - Only use selectors that exist in page.tsx — verify before using
+  - No test.skip(), no markdown fences
+  - Use page.waitForResponse() for ALL async blur validations — no fixed timeouts
+  - Soft-fail behaviors from page.tsx are intentional — assert them as-is
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
