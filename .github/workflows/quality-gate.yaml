@@ -89,7 +89,7 @@ jobs:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
           gemini_model: models/gemini-2.5-flash-lite
           prompt: '/generate-api-tests'
-          settings: '{"maxSessionTurns": 3}'
+          # settings: '{"maxSessionTurns": 3}'
           gemini_debug: true
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
@@ -104,7 +104,7 @@ jobs:
         with:
           gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
           prompt: '/generate-e2e-tests'
-          settings: '{"maxSessionTurns": 3}'
+          # settings: '{"maxSessionTurns": 3}'
           gemini_model: models/gemini-2.5-flash-lite
           gemini_debug: true
         env:
