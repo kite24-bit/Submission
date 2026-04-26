@@ -17,4 +17,5 @@ Start the file with EXACTLY:
   import { ApiHelper } from '../../utils/api-helper';
 
 Save the file to: generated_tests/api/payment-api.spec.ts
+After writing the file, stop immediately. Do not run any commands.
 """
