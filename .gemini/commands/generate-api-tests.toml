@@ -16,5 +16,5 @@ Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
   import { ApiHelper } from '../../utils/api-helper';
 
-Write to: playwright_template/tests/api/payment-api.spec.ts
+Save the file to: generated_tests/api/payment-api.spec.ts
 """
