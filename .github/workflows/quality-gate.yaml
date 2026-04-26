@@ -5,8 +5,6 @@ on:
   pull_request:
     # branches: [main, master]
       types: [opened, synchronize]
-  issue_comment:
-    types: [created]  
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -122,15 +120,6 @@ jobs:
           mkdir -p generated_tests
           cp -r .llm_cache/* generated_tests/
 
-      - name: Commit tests
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-          git add generated_tests
-
-          git diff --cached --quiet || git commit -m "chore: update generated tests"
-          git push
       # Guard: pastikan output Gemini valid sebelum lanjut ke run
       # Cegah hallucination masuk ke test execution
       - name: ✅ Validate generated files
@@ -167,6 +156,15 @@ jobs:
           echo "========== checkout-e2e.spec.ts =========="
           cat generated_tests/web/checkout-e2e.spec.ts || echo "(not found)"
 
+      - name: Commit tests
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add generated_tests
+
+          git diff --cached --quiet || git commit -m "chore: update generated tests [skip ci]"
+          git push
 # ─────────────────────────────────────────────────────────────────────────────
 # JOB 2 — run-tests
 #
