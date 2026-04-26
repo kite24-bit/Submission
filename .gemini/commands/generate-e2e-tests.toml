@@ -32,7 +32,8 @@ Rules:
   - Only use selectors that exist in page.tsx — verify before using
   - No test.skip(), no markdown fences
   - Use page.waitForResponse() for ALL async blur validations — no fixed timeouts
-  - Soft-fail behaviors from page.tsx are intentional — assert them as-is
+  - For success assertion, use page.getByText() with the most specific unique substring from the success message in page.tsx
+  - Soft-fail behaviors from page.tsx are intentional — for soft-fail, assert that the form is NOT blocked, not that an error message appears
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
