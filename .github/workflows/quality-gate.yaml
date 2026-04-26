@@ -274,17 +274,17 @@ jobs:
           ENABLE_TRACING=false
           EOF
 
-      # ── Run API Tests ────────────────────────────────────────────────────
-      - name: 🧪 Run API Tests
-        working-directory: playwright_template
-        run: |
-          npm run test:api
+
       # ── Run E2E Tests ────────────────────────────────────────────────────
       - name: 🧪 Run E2E Tests
         working-directory: playwright_template
         run: |
           npm run test:web
-
+      # ── Run API Tests ────────────────────────────────────────────────────
+      - name: 🧪 Run API Tests
+        working-directory: playwright_template
+        run: |
+          npm run test:api
       # ── Upload artifacts (selalu, termasuk saat gagal) ───────────────────
       - name: Upload Playwright HTML report
         if: always()
