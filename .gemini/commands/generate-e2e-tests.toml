@@ -13,10 +13,9 @@ Generate exactly 3 Playwright E2E tests in TypeScript:
   3. Negative test 2 — derived from page.tsx
 
 Use TestUtils from test-utils.ts as your primary helper.
+Only use Playwright semantic locators — never HTML tags (div, span, p, button, etc.) or CSS classes as selectors or assertions.
 All selectors and assertions must resolve to a unique element only.
 For async operations, always wait for network response before asserting UI changes.
-Only use Playwright semantic locators for both selectors and assertions:
-getByText(), getByRole(), getByLabel(), [name="x"], [type="x"]
 Soft-fail behaviors from page.tsx are intentional — assert them as-is.
 
 Start the file with EXACTLY:
