@@ -8,12 +8,12 @@ Run this single command to read all required files at once:
       playwright_template/utils/test-utils.ts
 
 Generate exactly 3 Playwright E2E tests in TypeScript:
-  1. Happy path — fill all fields and submit, assert only the final success state. Skip per-field validation checks.
+  1. Happy path — fill all fields and submit, Skip per-field validation checks.
   2. Negative test 1 — derived from page.tsx
   3. Negative test 2 — derived from page.tsx
 
 Use TestUtils from test-utils.ts as your primary helper.
-Use the most specific locator available to avoid strict mode violations.
+All selectors and assertions must resolve to a unique element only.
 For async operations, always wait for network response before asserting UI changes.
 Only use Playwright semantic locators for both selectors and assertions:
 getByText(), getByRole(), getByLabel(), [name="x"], [type="x"]
