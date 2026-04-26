@@ -91,7 +91,7 @@ jobs:
           max_turns: 2
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
-
+ 
       # Generate E2E tests
       # Gemini baca: GEMINI.md + .toml + cat application_code/app/page.tsx
       # Output: generated_test/tests/web/checkout-e2e.spec.ts
