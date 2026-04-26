@@ -5,17 +5,11 @@ You are a senior Playwright automation tester.
 
 Run this single command to read all required files at once:
   cat application_code/app/page.tsx \
-      playwright_template/utils/test-utils.ts \
-      playwright_template/tests/web/example-web.spec.ts
+      playwright_template/utils/test-utils.ts
 
-Before generating, verify your understanding of page.tsx:
-  - What exact text string appears on success?
-  - Which validations are blocking vs non-blocking?
-  - What selectors are stable for assertions?
-  - What attributes do the form inputs have? (name, id, placeholder, label?)
+Read and fully understand every function, state, and behavior in page.tsx before writing a single line of test code.
 
 Then in a SINGLE response, generate a complete Playwright E2E test file in TypeScript.
-Follow the style and structure of example-web.spec.ts.
 Use TestUtils from test-utils.ts as your primary helper.
 
 Generate exactly 3 tests:
@@ -25,15 +19,11 @@ Generate exactly 3 tests:
 
 Rules:
   - page.goto('/') only — NEVER absolute URLs
-  - Use exact text strings as they appear in page.tsx source code
-  - Only assert behaviors that are explicitly implemented in page.tsx
-  - All selectors and assertions must resolve to a unique element only and must resolve to be found
-  - Never assert transient UI states (loading, processing) — only assert final states
-  - Only use selectors that exist in page.tsx — verify before using
+  - Input values must match what the input actually contains after onChange
+  - Assert only what is explicitly rendered in the DOM
+  - For text assertions use getByText() with a unique substring — never div:has-text()
+  - Soft-fail behavior is intentional — assert the outcome, not an error message
   - No test.skip(), no markdown fences
-  - Use page.waitForResponse() for ALL async blur validations — no fixed timeouts
-  - For success assertion, use page.getByText() with the most specific unique substring from the success message in page.tsx
-  - Soft-fail behaviors from page.tsx are intentional — for soft-fail, assert that the form is NOT blocked, not that an error message appears
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
