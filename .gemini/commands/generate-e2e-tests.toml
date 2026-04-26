@@ -27,8 +27,12 @@ Rules:
   - page.goto('/') only — NEVER absolute URLs
   - Use exact text strings as they appear in page.tsx source code
   - Only assert behaviors that are explicitly implemented in page.tsx
-  - All locators must resolve to exactly one unique element
+  - All selectors and assertions must resolve to a unique element only.
   - No test.skip(), no markdown fences
+  - Use TestUtils from test-utils.ts as your primary helper.
+  - Only use Playwright semantic locators — never HTML tags (div, span, p, button, etc.) or CSS classes as selectors or assertions.
+  - For async operations, always wait for network response before asserting UI changes.
+  - Soft-fail behaviors from page.tsx are intentional — assert them as-is.
 
 Start the file with EXACTLY:
   import { test, expect } from '@playwright/test';
