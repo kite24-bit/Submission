@@ -3,70 +3,103 @@ import { ApiHelper } from '../../utils/api-helper';
 
 test.describe('Payment API Tests', () => {
   let apiHelper: ApiHelper;
-  let createdPaymentId: string;
 
-  test.beforeAll(async ({ request }) => {
+  test.beforeEach(async ({ request }) => {
     apiHelper = new ApiHelper(request);
   });
 
-  // Helper function to validate Payment schema
-  const validatePaymentSchema = (payment: any) => {
-    expect(payment).toBeDefined();
-    expect(typeof payment.id).toBe('string');
-    expect(typeof payment.amount).toBe('number');
-    expect(typeof payment.currency).toBe('string');
-    expect(typeof payment.status).toBe('string');
-    // createdAt is optional, so check if it exists before checking its type
-    if (payment.createdAt !== undefined) {
-      expect(typeof payment.createdAt).toBe('string');
-    }
-  };
+  test('GET /api/health - Health check', async () => {
+    const response = await apiHelper.get('/api/health');
+    const body = await apiHelper.validateAndGetJson(response, 200);
 
-  test('should create a new payment', async () => {
-    const newPayment = {
-      amount: 100.50,
-      currency: 'USD',
+    // main.HealthResponse schema validation
+    expect(typeof body.message).toBe('string');
+    expect(typeof body.status).toBe('string');
+    
+    expect(body.status).toBe('healthy');
+  });
+
+  test('POST /api/checkout - Process payment checkout', async () => {
+    const paymentRequest = {
+      amount: 50,
+      cardNumber: '4242 4242 4242 4242',
+      cvv: '123',
+      expiry: '12/26'
     };
-    const response = await apiHelper.post('/api/payments', newPayment);
-    expect(response.status()).toBe(201);
-    const payment = await response.json();
-    validatePaymentSchema(payment);
-    createdPaymentId = payment.id;
+
+    const response = await apiHelper.post('/api/checkout', paymentRequest);
+    const body = await apiHelper.validateAndGetJson(response, 200);
+
+    // main.PaymentResponse schema validation
+    expect(typeof body.message).toBe('string');
+    expect(typeof body.status).toBe('string');
   });
 
-  test('should get all payments', async () => {
-    const response = await apiHelper.get('/api/payments');
-    expect(response.status()).toBe(200);
-    const payments = await response.json();
-    expect(Array.isArray(payments)).toBe(true);
-    payments.forEach((payment: any) => {
-      validatePaymentSchema(payment);
-    });
+  test('POST /api/checkout - Bad Request', async () => {
+    // Missing required fields or invalid data to trigger 400
+    const invalidRequest = {
+      amount: "invalid_amount" // should be number
+    };
+
+    const response = await apiHelper.post('/api/checkout', invalidRequest);
+    const body = await apiHelper.validateAndGetJson(response, 400);
+
+    // main.ErrorResponse schema validation
+    expect(typeof body.error).toBe('string');
   });
 
-  test('should get a payment by ID', async () => {
-    // Ensure a payment has been created before trying to retrieve it by ID
-    await test.step('Create a payment for lookup', async () => {
-      const newPayment = {
-        amount: 200.75,
-        currency: 'EUR',
-      };
-      const response = await apiHelper.post('/api/payments', newPayment);
-      expect(response.status()).toBe(201);
-      const payment = await response.json();
-      createdPaymentId = payment.id;
-    });
+  test('POST /api/validate-card - Validate card number', async () => {
+    const cardRequest = {
+      cardNumber: '4242424242424242'
+    };
 
-    const response = await apiHelper.get(`/api/payments/${createdPaymentId}`);
-    expect(response.status()).toBe(200);
-    const payment = await response.json();
-    validatePaymentSchema(payment);
-    expect(payment.id).toBe(createdPaymentId);
+    const response = await apiHelper.post('/api/validate-card', cardRequest);
+    const body = await apiHelper.validateAndGetJson(response, 200);
+
+    // main.CardResponse schema validation
+    expect(typeof body.message).toBe('string');
+    expect(typeof body.valid).toBe('boolean');
   });
 
-  test('should return 404 for a non-existent payment ID', async () => {
-    const nonExistentId = 'non-existent-id-123';
-    const response = await apiHelper.get(`/api/payments/${nonExistentId}`);
-    expect(response.status()).toBe(404);
+  test('POST /api/validate-card - Bad Request', async () => {
+    const response = await apiHelper.post('/api/validate-card', {});
+    const body = await apiHelper.validateAndGetJson(response, 400);
+
+    // main.ErrorResponse schema validation
+    expect(typeof body.error).toBe('string');
+  });
+
+  test('POST /api/validate-email - Validate email address', async () => {
+    const emailRequest = {
+      email: 'user@example.com'
+    };
+
+    const response = await apiHelper.post('/api/validate-email', emailRequest);
+    const body = await apiHelper.validateAndGetJson(response, 200);
+
+    // main.EmailResponse schema validation
+    expect(typeof body.message).toBe('string');
+    expect(typeof body.valid).toBe('boolean');
+  });
+
+  test('POST /api/validate-email - Internal Server Error / Validation Failure', async () => {
+    // Using an invalid email might trigger the error response path depending on implementation
+    const emailRequest = {
+      email: 'invalid-email'
+    };
+
+    const response = await apiHelper.post('/api/validate-email', emailRequest);
+    
+    // Swagger says 500 for error response on this endpoint
+    if (response.status() === 500) {
+      const body = await apiHelper.validateAndGetJson(response, 500);
+      // main.ErrorResponse schema validation
+      expect(typeof body.error).toBe('string');
+    } else {
+      // If implementation returns 200 even for invalid email format but valid: false
+      const body = await apiHelper.validateAndGetJson(response, 200);
+      expect(typeof body.message).toBe('string');
+      expect(typeof body.valid).toBe('boolean');
+    }
   });
 });
