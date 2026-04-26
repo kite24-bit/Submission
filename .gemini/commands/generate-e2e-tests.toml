@@ -5,9 +5,13 @@ You are a senior Playwright automation tester.
 
 Run this single command to read all required files at once:
   cat application_code/app/page.tsx \
+      application_code/main.go \
       playwright_template/utils/test-utils.ts
 
-Read and fully understand every function, state, and behavior in page.tsx before writing a single line of test code.
+Read and fully understand every function, state, and behavior in page.tsx and main.go before writing a single line of test code.
+Pay special attention to: input formatting functions, actual API response messages, what conditions block or allow form submission, and what the API actually returns.
+
+Never assume any value, message, or behavior — derive everything directly from the source files you read.
 
 Then in a SINGLE response, generate a complete Playwright E2E test file in TypeScript.
 Use TestUtils from test-utils.ts as your primary helper.
@@ -19,9 +23,10 @@ Generate exactly 3 tests:
 
 Rules:
   - page.goto('/') only — NEVER absolute URLs
-  - Input values must match what the input actually contains after onChange
-  - Assert only what is explicitly rendered in the DOM
+  - Input values must match what the input actually contains after onChange formatting
+  - Assert only what is explicitly rendered in the DOM based on actual API responses
   - For text assertions use getByText() with a unique substring — never div:has-text()
+  - Never use page.route() to mock — test against real app behavior only
   - Soft-fail behavior is intentional — assert the outcome, not an error message
   - No test.skip(), no markdown fences
 
