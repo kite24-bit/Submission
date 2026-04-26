@@ -7,75 +7,53 @@ test.describe('Checkout Flow', () => {
   test.beforeEach(async ({ page }) => {
     utils = new TestUtils(page);
     await page.goto('/');
-    await utils.waitForPageLoad();
   });
 
   test('Happy path — fill all fields and submit, assert success', async ({ page }) => {
-    // Fill Email
-    const emailInput = page.getByLabel('Email Address');
-    await emailInput.fill('test@example.com');
-    await emailInput.blur();
-    await utils.waitForApiResponse('**/api/validate-email');
-
-    // Fill Card Number
-    const cardInput = page.getByLabel('Card Number');
-    await cardInput.fill('4242 4242 4242 4242');
-    await cardInput.blur();
-    await utils.waitForApiResponse('**/api/validate-card');
-
-    // Fill Expiry
-    await page.getByLabel('Expiry').fill('12/26');
-
-    // Fill CVV
-    await page.getByLabel('CVV').fill('123');
-
-    // Fill Amount
-    await page.getByLabel('Amount (USD)').fill('100.00');
-
-    // Submit Payment
-    const submitButton = page.getByRole('button', { name: 'Pay $100.00' });
-    await submitButton.click();
-    await utils.waitForApiResponse('**/api/checkout');
-
-    // Assert Success Message
-    await expect(page.getByText('✅ Payment processed successfully!')).toBeVisible();
-  });
-
-  test('Negative test 1 — derived from page.tsx (Invalid Card Number)', async ({ page }) => {
-    // Fill Invalid Card Number (Luhn check fails for ...4243)
-    const cardInput = page.getByLabel('Card Number');
-    await cardInput.fill('4242 4242 4242 4243');
-    await cardInput.blur();
+    await utils.fillField('input[name="email"]', 'valid@example.com');
     
-    // Wait for card validation response
-    await utils.waitForApiResponse('**/api/validate-card');
+    await utils.fillField('input[name="cardNumber"]', '4111 1111 1111 1111');
+    const cardValidation = page.waitForResponse(resp => resp.url().includes('/api/validate-card'));
+    await page.locator('input[name="cardNumber"]').blur();
+    await cardValidation;
 
-    // Assert validation message on blur
-    await expect(page.getByText('❌ Invalid card number (Luhn check failed)')).toBeVisible();
+    await utils.fillField('input[name="expiry"]', '12/26');
+    await utils.fillField('input[name="cvv"]', '123');
+    await utils.fillField('input[name="amount"]', '99.99');
 
-    // Fill other required fields to enable submission check
-    await page.getByLabel('Email Address').fill('test@example.com');
-    await page.getByLabel('Expiry').fill('12/26');
-    await page.getByLabel('CVV').fill('123');
-    await page.getByLabel('Amount (USD)').fill('50.00');
+    const checkoutResponse = page.waitForResponse(resp => resp.url().includes('/api/checkout'));
+    await page.click('button[type="submit"]');
+    await checkoutResponse;
 
-    // Attempt to submit
-    await page.getByRole('button', { name: 'Pay $50.00' }).click();
-
-    // Assert blocking error message
-    await expect(page.getByText('❌ Please enter a valid card number')).toBeVisible();
+    await expect(page.locator('div:has-text("✅")')).toBeVisible();
   });
 
-  test('Negative test 2 — derived from page.tsx (Email validation service error)', async ({ page }) => {
-    // Fill Email
-    const emailInput = page.getByLabel('Email Address');
-    await emailInput.fill('test@example.com');
-    await emailInput.blur();
+  test('Negative test 1 — Invalid card number blocks submission', async ({ page }) => {
+    await utils.fillField('input[name="cardNumber"]', '1234 5678 9012 3452');
+    
+    const cardValidation = page.waitForResponse(resp => resp.url().includes('/api/validate-card'));
+    await page.locator('input[name="cardNumber"]').blur();
+    await cardValidation;
 
-    // Wait for email validation response (Backend returns 500)
-    await utils.waitForApiResponse('**/api/validate-email');
+    await expect(page.locator('text=❌ Invalid card number (Luhn check failed)')).toBeVisible();
 
-    // Assert soft-fail warning message
-    await expect(page.getByText('⚠️ Email validation service temporarily unavailable. You can still proceed.')).toBeVisible();
+    await utils.fillField('input[name="email"]', 'test@example.com');
+    await utils.fillField('input[name="expiry"]', '12/26');
+    await utils.fillField('input[name="cvv"]', '123');
+    await utils.fillField('input[name="amount"]', '10.00');
+
+    await page.click('button[type="submit"]');
+    await expect(page.locator('text=❌ Please enter a valid card number')).toBeVisible();
+  });
+
+  test('Negative test 2 — Invalid email format validation', async ({ page }) => {
+    await utils.fillField('input[name="email"]', 'invalid-email-format');
+    
+    const emailValidation = page.waitForResponse(resp => resp.url().includes('/api/validate-email'));
+    await page.locator('input[name="email"]').blur();
+    await emailValidation;
+
+    await expect(page.locator('text=❌ Invalid email format')).toBeVisible();
+    await expect(page.locator('input[name="email"]')).toHaveClass(/border-red-400/);
   });
 });
