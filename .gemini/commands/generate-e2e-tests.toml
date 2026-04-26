@@ -13,6 +13,7 @@ Generate exactly 3 Playwright E2E tests in TypeScript:
   3. Negative test 2 — derived from page.tsx
 
 Use TestUtils from test-utils.ts as your primary helper.
+For async operations, always wait for network response before asserting UI changes.
 Only use Playwright semantic locators for both selectors and assertions:
 getByText(), getByRole(), getByLabel(), [name="x"], [type="x"]
 Soft-fail behaviors from page.tsx are intentional — assert them as-is.
