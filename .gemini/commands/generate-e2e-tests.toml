@@ -17,7 +17,7 @@ Then in a SINGLE response, generate a complete Playwright E2E test file in TypeS
 Use TestUtils from test-utils.ts as your primary helper.
 
 Generate exactly 3 tests:
-  1. Happy path — fill all fields and submit, assert success. Skip per-field validation checks.
+  1. Happy path — fill all fields and submit, Skip per-field validation checks, assert success.
   2. Negative test 1 — derived from page.tsx
   3. Negative test 2 — derived from page.tsx
 
