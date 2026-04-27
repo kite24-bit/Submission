@@ -147,7 +147,6 @@ The following secrets are configured under **Settings → Secrets and variables 
 | Secret Name | Purpose |
 |---|---|
 | `PERSONAL_GEMINI_TOKEN` | Authenticates the Gemini CLI workflow (used for `gemini_api_key`) |
-| `GEMINI_API_KEY` | Gemini API key used in test generation steps |
 | `API_SECRET_KEY` | Secret key for authenticating against the application API |
 | `STAGING_API_URL` | Base URL of the staging API used during test runs |
 | `STAGING_BASE_URL` | Base URL of the staging frontend used for E2E tests |
