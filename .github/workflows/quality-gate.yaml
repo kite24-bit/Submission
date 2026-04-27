@@ -107,12 +107,24 @@ jobs:
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
           
-      - name: Save cache
+      - name: prepare cache
         if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
         run: |
           mkdir -p .llm_cache
           cp -r generated_tests/* .llm_cache/
 
+      - name: Save cache
+        if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
+        uses: actions/cache/save@v4
+        with:
+          path: .llm_cache
+          key: llm-cache-${{ hashFiles(
+               'application_code/app/**/*.tsx',
+               'application_code/docs/**/*.{json,yaml}',
+               '.gemini/commands/*.toml',
+               'GEMINI.md'
+             ) }}
+       
       - name: Use cache
         if: steps.decide.outputs.mode == 'cache'
         run: |
