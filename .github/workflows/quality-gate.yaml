@@ -281,6 +281,31 @@ jobs:
         working-directory: playwright_template
         run: |
           npm run test:web
+          
+      # ── Upload artifacts (selalu, termasuk saat gagal) ───────────────────
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-E2E
+          path: playwright_template/playwright-report/
+          retention-days: 14
+
+      - name: Upload JUnit XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-resultsE2E-xml
+          path: playwright_template/test-results/results.xml
+          retention-days: 14
+
+      - name: Upload screenshots & traces (hanya saat gagal)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-artifactsE2E
+          path: playwright_template/test-results/
+          retention-days: 7
       # ── Run API Tests ────────────────────────────────────────────────────
       - name: 🧪 Run API Tests
         working-directory: playwright_template
@@ -291,7 +316,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-API
           path: playwright_template/playwright-report/
           retention-days: 14
 
@@ -299,7 +324,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-xml
+          name: test-resultsAPI-xml
           path: playwright_template/test-results/results.xml
           retention-days: 14
 
@@ -307,7 +332,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: failure-artifacts
+          name: failure-artifacts-API
           path: playwright_template/test-results/
           retention-days: 7
 
