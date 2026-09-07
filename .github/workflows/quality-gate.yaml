@@ -28,6 +28,8 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      pull-requests: read
+      issues: read
 
     steps:
       # Checkout PR branch
@@ -84,10 +86,10 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
+          # GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
         with:
           model: opencode/big-pickle
-          use_github_token: true
+          # use_github_token: true
           prompt: '/generate-api-tests'
             
         # with:
@@ -108,10 +110,10 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
+          # GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
         with:
           model: opencode/big-pickle
-          use_github_token: true
+          # use_github_token: true
           prompt: '/generate-e2e-tests'
           
         # uses: google-github-actions/run-gemini-cli@v0
