@@ -90,6 +90,7 @@ jobs:
           gemini_debug: true
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
+          GEMINI_MODEL: gemini-2.5-flash
           
  
       # Generate E2E tests
@@ -106,6 +107,7 @@ jobs:
           gemini_debug: true
         env:
           GEMINI_CLI_TRUST_WORKSPACE: true
+          GEMINI_MODEL: gemini-2.5-flash
           
       - name: prepare cache
         if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
