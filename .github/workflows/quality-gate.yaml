@@ -92,6 +92,7 @@ jobs:
           model: opencode/big-pickle
           use_github_token: true
           prompt: '/generate-api-tests'
+          share: false
             
         # with:
         #   gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
@@ -117,6 +118,7 @@ jobs:
           model: opencode/big-pickle
           use_github_token: true
           prompt: '/generate-e2e-tests'
+          share: false
           
         # uses: google-github-actions/run-gemini-cli@v0
         # with:
