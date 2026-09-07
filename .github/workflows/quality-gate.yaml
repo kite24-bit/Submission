@@ -75,21 +75,26 @@ jobs:
             echo "mode=miss" >> $GITHUB_OUTPUT
           fi
 
-
       # Generate API tests
       # Gemini baca: GEMINI.md + .toml + cat application_code/docs/swagger.yaml
       # Output: generated_test/tests/api/payment-api.spec.ts
       - name: 🤖 Generate API Tests
         if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
-        uses: google-github-actions/run-gemini-cli@v0
-        with:
-          gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          gemini_model: models/Antigravity
-          prompt: '/generate-api-tests'
-          # settings: '{"maxSessionTurns": 3}'
-          gemini_debug: true
+        uses: anomalyco/opencode/github@latest
         env:
-          GEMINI_CLI_TRUST_WORKSPACE: true
+          OPENCODE_API_KEY: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
+        with:
+          model: opencode/big-pickle
+          prompt: '/generate-api-tests'
+            
+        # with:
+        #   gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
+        #   # gemini_model: models/Antigravity
+        #   prompt: '/generate-api-tests'
+        #   # settings: '{"maxSessionTurns": 3}'
+        #   gemini_debug: true
+        # env:
+        #   GEMINI_CLI_TRUST_WORKSPACE: true
           
  
       # Generate E2E tests
@@ -97,15 +102,22 @@ jobs:
       # Output: generated_test/tests/web/checkout-e2e.spec.ts
       - name: 🤖 Generate E2E Tests
         if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
-        uses: google-github-actions/run-gemini-cli@v0
-        with:
-          gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          prompt: '/generate-e2e-tests'
-          # settings: '{"maxSessionTurns": 3}'
-          gemini_model: models/Antigravity
-          gemini_debug: true
+        uses: anomalyco/opencode/github@latest
         env:
-          GEMINI_CLI_TRUST_WORKSPACE: true
+          OPENCODE_API_KEY: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
+        with:
+          model: opencode/big-pickle
+          prompt: '/generate-e2e-tests'
+          
+        # uses: google-github-actions/run-gemini-cli@v0
+        # with:
+        #   gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
+        #   prompt: '/generate-e2e-tests'
+        #   # settings: '{"maxSessionTurns": 3}'
+        #   gemini_model: models/Antigravity
+        #   gemini_debug: true
+        # env:
+        #   GEMINI_CLI_TRUST_WORKSPACE: true
           
       - name: prepare cache
         if: steps.decide.outputs.mode == 'force' || steps.decide.outputs.mode == 'miss'
