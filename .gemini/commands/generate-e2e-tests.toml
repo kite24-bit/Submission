@@ -14,6 +14,8 @@ Pay special attention to: input formatting functions, actual API response messag
 Never assume any value, message, or behavior — derive everything directly from the source files you read.
 
 Then in a SINGLE response, generate a complete Playwright E2E test file in TypeScript.
+DO NOT run any commands. Do NOT execute tests. Do NOT use npx, npm, or playwright.
+Write the file only, then stop.
 Use TestUtils from test-utils.ts as your primary helper.
 
 Generate exactly 3 tests:
