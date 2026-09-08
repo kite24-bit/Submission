@@ -78,6 +78,11 @@ jobs:
             echo "mode=miss" >> $GITHUB_OUTPUT
           fi
 
+      - name: Set git identity
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+    
       # Generate API tests
       # Gemini baca: GEMINI.md + .toml + cat application_code/docs/swagger.yaml
       # Output: generated_test/tests/api/payment-api.spec.ts
