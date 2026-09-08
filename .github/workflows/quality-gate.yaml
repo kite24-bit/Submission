@@ -86,7 +86,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          OPENCODE_PERMISSION: '{"edit":{"allow":["**"]},"bash":{"allow":["**"]}}'
+          OPENCODE_PERMISSION: '{"external_directory":"allow","edit":{"*":"allow"},"bash":{"*":"allow"}}'
           GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
         with:
           model: opencode/big-pickle
@@ -112,7 +112,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          OPENCODE_PERMISSION: '{"edit":{"allow":["**"]},"bash":{"allow":["**"]}}'
+          OPENCODE_PERMISSION: '{"external_directory":"allow","edit":{"*":"allow"},"bash":{"*":"allow"}}'
           GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
         with:
           model: opencode/big-pickle
