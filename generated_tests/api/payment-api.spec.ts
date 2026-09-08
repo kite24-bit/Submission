@@ -69,7 +69,10 @@ test.describe('Payment API', () => {
 
     test.describe('POST /api/validate-card', () => {
         test('returns valid=true for a Luhn-valid card (main.CardResponse schema)', async () => {
+            // main.CardRequest: { cardNumber: string }
             const payload = { cardNumber: '4242424242424242' };
+
+            expect(typeof payload.cardNumber).toBe('string');
 
             const response = await apiHelper.post('/api/validate-card', payload);
             const body = await apiHelper.validateAndGetJson(response, 200);
@@ -95,7 +98,7 @@ test.describe('Payment API', () => {
             expect(body.message).toBe('Invalid card number (Luhn check failed)');
         });
 
-        test('returns valid=false when card number is missing', async () => {
+        test('returns valid=false when card number is missing (main.CardResponse schema)', async () => {
             const response = await apiHelper.post('/api/validate-card', {});
             const body = await apiHelper.validateAndGetJson(response, 200);
 
