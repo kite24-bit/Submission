@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-  import { TestUtils } from '../../utils/test-utils';
+import { TestUtils } from '../../utils/test-utils';
 
 test('Happy path — fill all fields and submit', async ({ page }) => {
   const utils = new TestUtils(page);
