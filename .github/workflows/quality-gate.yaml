@@ -1,7 +1,7 @@
 name: 🤖 AI Quality Gate — Gemini CLI + Playwright
  
 on:
- 
+
   pull_request:
     # branches: [main, master]
       types: [opened, synchronize]
@@ -28,8 +28,8 @@ jobs:
     permissions:
       contents: write
       id-token: write
-      pull-requests: read
-      issues: read
+      pull-requests: write
+      issues: write
 
     steps:
       # Checkout PR branch
@@ -78,6 +78,11 @@ jobs:
             echo "mode=miss" >> $GITHUB_OUTPUT
           fi
 
+      - name: Set git identity
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+    
       # Generate API tests
       # Gemini baca: GEMINI.md + .toml + cat application_code/docs/swagger.yaml
       # Output: generated_test/tests/api/payment-api.spec.ts
@@ -86,11 +91,13 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          # GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
+          OPENCODE_PERMISSION: '{"external_directory":"allow","edit":{"*":"allow"},"bash":{"*":"allow"}}'
+          GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
         with:
           model: opencode/big-pickle
-          # use_github_token: true
+          use_github_token: true
           prompt: '/generate-api-tests'
+          share: false
             
         # with:
         #   gemini_api_key: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
@@ -110,11 +117,13 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY: ${{ secrets.PERSONAL_GEMINI_TOKEN }}
-          # GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
+          OPENCODE_PERMISSION: '{"external_directory":"allow","edit":{"*":"allow"},"bash":{"*":"allow"}}'
+          GITHUB_TOKEN: ${{ secrets.CHECKOUT_TOKEN }}
         with:
           model: opencode/big-pickle
-          # use_github_token: true
+          use_github_token: true
           prompt: '/generate-e2e-tests'
+          share: false
           
         # uses: google-github-actions/run-gemini-cli@v0
         # with:
