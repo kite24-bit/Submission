@@ -79,6 +79,7 @@ test.describe('Payment API', () => {
             expect(typeof body.message).toBe('string');
 
             expect(body.valid).toBe(true);
+            expect(body.message).toBe('Card number validated');
         });
 
         test('returns valid=false for a Luhn-invalid card (main.CardResponse schema)', async () => {
